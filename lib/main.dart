@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'screens/splash_screen.dart';
 import 'screens/games_screen.dart';
 
 void main() {
@@ -7,22 +8,31 @@ void main() {
 }
 
 class SevenSistersCare extends StatelessWidget {
-  const SevenSistersCare({super.key});
+  final Widget? home;
+  const SevenSistersCare({super.key, this.home});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Seven Sisters Care',
-
       theme: ThemeData(
         useMaterial3: true,
         fontFamily: 'Arial',
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2E7D5B)),
       ),
-
-      home: const MainScreen(),
+      home: home ?? const SplashScreen(),
     );
+  }
+}
+
+class MyApp extends StatelessWidget {
+  final Widget? home;
+  const MyApp({super.key, this.home});
+
+  @override
+  Widget build(BuildContext context) {
+    return SevenSistersCare(home: home);
   }
 }
 

@@ -36,7 +36,6 @@ dependencies:
   cupertino_icons: ^1.0.8
   video_player: ^2.14.0
   battery_plus: ^6.2.1 
- 
 
 dev_dependencies:
   flutter_test:
@@ -64,7 +63,7 @@ flutter:
     - assets/videos/continuous_focus_tutorial.mp4
     - assets/images/
     - assets/images/pair_finder/
-  
+    - assets/images2/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

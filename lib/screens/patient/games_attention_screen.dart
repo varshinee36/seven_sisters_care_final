@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../continuous_focus_tutorial.dart';
 
 class GamesAttentionScreen extends StatefulWidget {
   const GamesAttentionScreen({super.key});
@@ -29,12 +30,21 @@ class _GamesAttentionScreenState extends State<GamesAttentionScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text("$title Session Started!"),
-                  backgroundColor: color,
-                ),
-              );
+              if (title.contains("Continuous Focus")) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ContinuousFocusTutorial(),
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text("$title Session Started!"),
+                    backgroundColor: color,
+                  ),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: color,

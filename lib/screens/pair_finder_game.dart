@@ -144,7 +144,6 @@ class _PairFinderGameState extends State<PairFinderGame> {
   int _wrongAttempts = 0; // Max 3 wrong attempts triggers end of game
   int _hintsUsed = 0;
   int _matches = 0;
-  int _score = 0;
   int _seconds = 0;
 
   Timer? _timer;
@@ -247,7 +246,6 @@ class _PairFinderGameState extends State<PairFinderGame> {
     _wrongAttempts = 0;
     _hintsUsed = 0;
     _matches = 0;
-    _score = 0;
     _seconds = 0;
     _lastScoreBreakdown = null;
 
@@ -443,7 +441,6 @@ class _PairFinderGameState extends State<PairFinderGame> {
         firstCard.revealed = true;
         secondCard.revealed = true;
         _matches++;
-        _score = _calculateScore().totalScore;
       });
 
       if (_matches == _pairCount) {
@@ -451,7 +448,6 @@ class _PairFinderGameState extends State<PairFinderGame> {
         final breakdown = _calculateScore();
 
         setState(() {
-          _score = breakdown.totalScore;
           _lastScoreBreakdown = breakdown;
           _gameFinished = true;
           _firstSelectedIndex = null;
@@ -556,7 +552,6 @@ class _PairFinderGameState extends State<PairFinderGame> {
     });
 
     final breakdown = _calculateScore();
-    _score = breakdown.totalScore;
     _lastScoreBreakdown = breakdown;
 
     await Future.delayed(const Duration(milliseconds: 1100));
@@ -1016,11 +1011,13 @@ class _PairFinderGameState extends State<PairFinderGame> {
                           ),
                         ),
 
-                        // Center Digital Time
+                        // Center Digital Time & Battery
                         Text(
-                          _getTimeString(),
+                          _batteryLevel != null
+                              ? '${_getTimeString()} • $_batteryLevel%'
+                              : _getTimeString(),
                           style: const TextStyle(
-                            fontSize: 22,
+                            fontSize: 20,
                             fontWeight: FontWeight.bold,
                             color: Colors.black,
                             letterSpacing: 0.5,

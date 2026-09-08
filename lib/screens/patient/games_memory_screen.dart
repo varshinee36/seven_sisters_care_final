@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../pair_finder_tutorial.dart';
 
 class GamesMemoryScreen extends StatefulWidget {
   const GamesMemoryScreen({super.key});
@@ -54,10 +55,10 @@ class _GamesMemoryScreenState extends State<GamesMemoryScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("Pair Finder Game Session Started!"),
-                  backgroundColor: Color(0xFFEA247F),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const PairFinderTutorial(),
                 ),
               );
             },

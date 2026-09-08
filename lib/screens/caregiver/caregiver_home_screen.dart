@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../role/choose_role_screen.dart';
 import '../patient/patient_home_screen.dart';
+import 'caregiver_dashboard.dart';
 
 class CaregiverHomeScreen extends StatefulWidget {
   const CaregiverHomeScreen({super.key});
@@ -175,10 +176,10 @@ class _CaregiverHomeScreenState extends State<CaregiverHomeScreen> {
                         icon: Icons.analytics_rounded,
                         color: const Color(0xFF459B98),
                         onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("Loading Cognitive Analytics Dashboard..."),
-                              backgroundColor: Color(0xFF005F46),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const CaregiverDashboard(),
                             ),
                           );
                         },

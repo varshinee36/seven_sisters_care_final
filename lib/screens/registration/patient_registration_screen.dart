@@ -17,12 +17,8 @@ class _PatientRegistrationScreenState
   final TextEditingController dobController =
       TextEditingController();
 
-  final TextEditingController ageController =
-      TextEditingController();
-
   String gender = "Male";
   String language = "English";
-  String education = "Primary";
   String readingPreference = "Yes";
   String dementiaStage = "Mild";
 
@@ -30,7 +26,6 @@ class _PatientRegistrationScreenState
   void dispose() {
     nameController.dispose();
     dobController.dispose();
-    ageController.dispose();
     super.dispose();
   }
 
@@ -234,35 +229,6 @@ class _PatientRegistrationScreenState
                     const SizedBox(height: 15),
 
                     const Text(
-                      "Age",
-                      style: TextStyle(
-                        fontWeight:
-                            FontWeight.w600,
-                      ),
-                    ),
-
-                    const SizedBox(height: 5),
-
-                    TextField(
-                      controller: ageController,
-                      keyboardType:
-                          TextInputType.number,
-                      decoration: InputDecoration(
-                        hintText: "Enter Age",
-                        filled: true,
-                        fillColor: Colors.white,
-                        border:
-                            OutlineInputBorder(
-                          borderRadius:
-                              BorderRadius.circular(
-                                  10),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 15),
-
-                    const Text(
                       "Gender",
                       style: TextStyle(
                         fontWeight:
@@ -350,46 +316,6 @@ class _PatientRegistrationScreenState
                       onChanged: (value) {
                         setState(() {
                           language = value!;
-                        });
-                      },
-                    ),
-
-                    const SizedBox(height: 15),
-
-                    const Text(
-                      "Education Level",
-                      style: TextStyle(
-                        fontWeight:
-                            FontWeight.w600,
-                      ),
-                    ),
-
-                    const SizedBox(height: 5),
-
-                    DropdownButtonFormField<String>(
-                      value: education,
-                      decoration:
-                          const InputDecoration(
-                        filled: true,
-                        fillColor: Colors.white,
-                      ),
-                      items: [
-                        "Not Educated",
-                        "Primary",
-                        "Secondary",
-                        "University",
-                      ]
-                          .map(
-                            (e) =>
-                                DropdownMenuItem(
-                              value: e,
-                              child: Text(e),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          education = value!;
                         });
                       },
                     ),
@@ -519,36 +445,6 @@ class _PatientRegistrationScreenState
                               const SnackBar(
                                 content: Text(
                                   "Please select date of birth",
-                                ),
-                              ),
-                            );
-                            return;
-                          }
-
-                          if (ageController.text
-                              .trim()
-                              .isEmpty) {
-                            ScaffoldMessenger.of(
-                                    context)
-                                .showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  "Please enter age",
-                                ),
-                              ),
-                            );
-                            return;
-                          }
-
-                          if (int.tryParse(
-                                  ageController.text) ==
-                              null) {
-                            ScaffoldMessenger.of(
-                                    context)
-                                .showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  "Enter valid age",
                                 ),
                               ),
                             );

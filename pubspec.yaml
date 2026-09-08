@@ -64,6 +64,7 @@ flutter:
     - assets/images/
     - assets/images/pair_finder/
     - assets/images2/
+    - assets/images/memory/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

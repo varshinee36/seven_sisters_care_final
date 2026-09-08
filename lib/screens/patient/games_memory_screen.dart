@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'memory_hunt_screen.dart';
 
 class GamesMemoryScreen extends StatefulWidget {
   const GamesMemoryScreen({super.key});
@@ -73,68 +74,11 @@ class _GamesMemoryScreenState extends State<GamesMemoryScreen> {
       ),
     );
   }
-
   void _openMemoryHuntGame() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
-          children: [
-            Icon(Icons.search_rounded, color: Color(0xFF7A97FF)),
-            SizedBox(width: 10),
-            Text("Memory Hunt", style: TextStyle(fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              "Remember hidden items and find them in order across the board.",
-              style: TextStyle(fontSize: 15, height: 1.4),
-            ),
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF7A97FF).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  Text("🔍", style: TextStyle(fontSize: 36)),
-                  Text("🗝️", style: TextStyle(fontSize: 36)),
-                  Text("📦", style: TextStyle(fontSize: 36)),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Close", style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("Memory Hunt Game Session Started!"),
-                  backgroundColor: Color(0xFF7A97FF),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF7A97FF),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-            ),
-            child: const Text("Start Playing",
-                style: TextStyle(color: Colors.white)),
-          ),
-        ],
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const MemoryHuntScreen(),
       ),
     );
   }
@@ -160,7 +104,7 @@ class _GamesMemoryScreenState extends State<GamesMemoryScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: Column(
                 children: [
-                  // Header: Logo & 11:30 AM
+                  // Header: Logo & 11:30 AM & Voice over
                   Row(
                     children: [
                       ClipOval(
@@ -180,13 +124,23 @@ class _GamesMemoryScreenState extends State<GamesMemoryScreen> {
                         ),
                       ),
                       const SizedBox(width: 16),
-                      const Text(
-                        "11:30 AM",
-                        style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                      const Expanded(
+                        child: Text(
+                          "11:30 AM",
+                          style: TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
                         ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.volume_up,
+                            color: Colors.black87, size: 28),
+                        onPressed: () {
+                          // TODO: Connect voice-over audio later.
+                        },
+                        tooltip: 'Voice over',
                       ),
                     ],
                   ),

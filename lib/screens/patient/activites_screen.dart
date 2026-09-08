@@ -141,14 +141,28 @@ class _ActivitesScreenState extends State<ActivitesScreen> {
 
                   const SizedBox(height: 12),
 
-                  // Title: Activities
-                  const Text(
-                    "Activities",
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF005F46),
-                    ),
+                  // Title: Activities + Voice over
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          "Activities",
+                          style: TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF005F46),
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.volume_up,
+                            color: Colors.black87, size: 28),
+                        onPressed: () {
+                          // TODO: Connect voice-over audio later.
+                        },
+                        tooltip: 'Voice over',
+                      ),
+                    ],
                   ),
 
                   const SizedBox(height: 18),

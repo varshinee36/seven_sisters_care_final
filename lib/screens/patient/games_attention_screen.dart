@@ -87,13 +87,23 @@ class _GamesAttentionScreenState extends State<GamesAttentionScreen> {
                         ),
                       ),
                       const SizedBox(width: 16),
-                      const Text(
-                        "11:30 AM",
-                        style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                      const Expanded(
+                        child: Text(
+                          "11:30 AM",
+                          style: TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
                         ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.volume_up,
+                            color: Colors.black87, size: 28),
+                        onPressed: () {
+                          // TODO: Connect voice-over audio later.
+                        },
+                        tooltip: 'Voice over',
                       ),
                     ],
                   ),

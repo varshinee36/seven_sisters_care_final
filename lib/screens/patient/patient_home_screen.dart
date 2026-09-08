@@ -415,9 +415,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: Column(
                 children: [
-                  // Top Header: Logo + 11:30 AM / 70% Charge + Settings Icon
+                  // Top Header: Logo + 11:30 AM / 70% Charge + Voice + Settings
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       ClipOval(
                         child: Image.asset(
@@ -435,33 +434,44 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                           },
                         ),
                       ),
-                      const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "11:30 AM",
-                            style: TextStyle(
-                              fontSize: 26,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          Row(
-                            children: [
-                              Icon(Icons.battery_charging_full_rounded,
-                                  size: 18, color: Colors.black87),
-                              SizedBox(width: 4),
-                              Text(
-                                "70% Charge",
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.black87,
-                                ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "11:30 AM",
+                              style: TextStyle(
+                                fontSize: 26,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
                               ),
-                            ],
-                          ),
-                        ],
+                            ),
+                            Row(
+                              children: [
+                                Icon(Icons.battery_charging_full_rounded,
+                                    size: 18, color: Colors.black87),
+                                SizedBox(width: 4),
+                                Text(
+                                  "70% Charge",
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.volume_up,
+                            size: 28, color: Colors.black87),
+                        onPressed: () {
+                          // TODO: Connect voice-over audio later.
+                        },
+                        tooltip: 'Voice over',
                       ),
                       IconButton(
                         icon: const Icon(Icons.settings,

@@ -1,22 +1,1632 @@
 import 'package:flutter/material.dart';
 
-class CaregiverDashboard extends StatelessWidget {
+import 'caregiver_analytics_dashboard.dart';
+
+/// Caregiver Dashboard matching the Seven Sisters Care design.
+///
+/// Features:
+/// - Left Sidebar with Home, Remainder, Games, Activities, Reports, Analytics, Settings
+/// - Report Generator with Weekly, Monthly, and Custom date ranges
+/// - Complete cards matching the exact layout and content:
+///   1. Patient Profile & Settings panel (collapsible)
+///   2. Remainder Notifications
+///   3. Memory Engaging Activities
+///   4. Cognitive Games (4 Domains, 8 games)
+///   5. Remainder Management (Medicine, Hydration, Customized, Doctor Appointment, Food)
+///   6. Dynamic Report Generator
+class CaregiverDashboard extends StatefulWidget {
   const CaregiverDashboard({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Caregiver Dashboard"),
-        backgroundColor: const Color(0xFF005F46),
-        foregroundColor: Colors.white,
+  State<CaregiverDashboard> createState() => _CaregiverDashboardState();
+}
+
+class _CaregiverDashboardState extends State<CaregiverDashboard> {
+  String _activeTab = 'Home';
+  bool _settingsExpanded = true;
+  bool _textReadingPreferenceYes = true;
+
+  // Report Generator State: 'Weekly', 'Monthly', 'Custom'
+  String _reportBasis = 'Weekly';
+  DateTime _customStartDate = DateTime(2026, 5, 21);
+  DateTime _customEndDate = DateTime(2026, 5, 27);
+
+  String get _reportDateRangeString {
+    switch (_reportBasis) {
+      case 'Weekly':
+        return '21 May 2026 ➔ 27 May 2026';
+      case 'Monthly':
+        return '01 May 2026 ➔ 31 May 2026';
+      case 'Custom':
+        final s =
+            '${_customStartDate.day.toString().padLeft(2, '0')} ${_monthName(_customStartDate.month)} ${_customStartDate.year}';
+        final e =
+            '${_customEndDate.day.toString().padLeft(2, '0')} ${_monthName(_customEndDate.month)} ${_customEndDate.year}';
+        return '$s ➔ $e';
+      default:
+        return '21 May 2026 ➔ 27 May 2026';
+    }
+  }
+
+  String _monthName(int month) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
+    return months[(month - 1).clamp(0, 11)];
+  }
+
+  Future<void> _pickDateRange() async {
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2024),
+      lastDate: DateTime(2030),
+      initialDateRange: DateTimeRange(
+        start: _customStartDate,
+        end: _customEndDate,
       ),
-      body: const Center(
-        child: Text(
-          "Caregiver Dashboard View",
-          style: TextStyle(fontSize: 18, color: Color(0xFF005F46)),
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF005F46),
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Colors.black87,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        _customStartDate = picked.start;
+        _customEndDate = picked.end;
+        _reportBasis = 'Custom';
+      });
+    }
+  }
+
+  void _onSidebarTabSelected(String label) {
+    if (label == 'Analytics') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const CaregiverAnalyticsDashboard(),
+        ),
+      );
+    } else {
+      setState(() {
+        _activeTab = label;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth > 900;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFD6EFE5),
+      body: Row(
+        children: [
+          // 1. LEFT SIDEBAR
+          _buildSidebar(),
+
+          // 2. MAIN BODY
+          Expanded(
+            child: Container(
+              color: const Color(0xFFE2F3EC),
+              child: Column(
+                children: [
+                  // Top Header
+                  _buildTopHeader(),
+
+                  // Scrollable Dashboard Content
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (isDesktop) ...[
+                            // Desktop Row 1: Profile & Settings (3) + Remainder Notifications (3) + Activities (4)
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                    flex: 3,
+                                    child: _buildPatientProfileAndSettingsCard()),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                    flex: 3,
+                                    child: _buildRemainderNotificationsCard()),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                    flex: 4,
+                                    child: _buildMemoryActivitiesCard()),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+
+                            // Desktop Row 2: Cognitive Games (6) + Remainder Management (5)
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  flex: 6,
+                                  child: Column(
+                                    children: [
+                                      _buildCognitiveGamesCard(),
+                                      const SizedBox(height: 14),
+                                      _buildReportGeneratorCard(),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  flex: 5,
+                                  child: _buildRemainderManagementCard(),
+                                ),
+                              ],
+                            ),
+                          ] else ...[
+                            // Responsive single-column layout for narrower windows
+                            _buildPatientProfileAndSettingsCard(),
+                            const SizedBox(height: 14),
+                            _buildRemainderNotificationsCard(),
+                            const SizedBox(height: 14),
+                            _buildMemoryActivitiesCard(),
+                            const SizedBox(height: 14),
+                            _buildCognitiveGamesCard(),
+                            const SizedBox(height: 14),
+                            _buildRemainderManagementCard(),
+                            const SizedBox(height: 14),
+                            _buildReportGeneratorCard(),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // SIDEBAR
+  // ---------------------------------------------------------------------------
+  Widget _buildSidebar() {
+    return Container(
+      width: 76,
+      color: const Color(0xFFD6EFE5),
+      child: Column(
+        children: [
+          const SizedBox(height: 12),
+          // Hamburger Icon
+          IconButton(
+            icon: const Icon(Icons.menu_rounded, color: Color(0xFF005F46), size: 30),
+            onPressed: () {},
+          ),
+          const SizedBox(height: 8),
+
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                _buildSidebarItem(Icons.home_rounded, 'Home'),
+                _buildSidebarItem(Icons.notification_add_rounded, 'Remainder'),
+                _buildSidebarItem(Icons.psychology_rounded, 'Games'),
+                _buildSidebarItem(Icons.diversity_3_rounded, 'Activities'),
+                _buildSidebarItem(Icons.assignment_rounded, 'Reports'),
+                _buildSidebarItem(Icons.bar_chart_rounded, 'Analytics'),
+                _buildSidebarItem(Icons.settings_rounded, 'Settings'),
+              ],
+            ),
+          ),
+
+          // Landscape artwork at bottom
+          Container(
+            height: 90,
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 8),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.asset(
+                'assets/images/background.jpg',
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  color: const Color(0xFFBBE5D4),
+                  child: const Icon(Icons.landscape_rounded,
+                      color: Color(0xFF005F46), size: 34),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSidebarItem(IconData icon, String label) {
+    final isSelected = _activeTab == label;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      child: InkWell(
+        onTap: () => _onSidebarTabSelected(label),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFF74B49B) : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                color: isSelected ? Colors.white : const Color(0xFF005F46),
+                size: 24,
+              ),
+              const SizedBox(height: 3),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                  color: isSelected ? Colors.white : const Color(0xFF005F46),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+
+  // ---------------------------------------------------------------------------
+  // TOP HEADER BAR
+  // ---------------------------------------------------------------------------
+  Widget _buildTopHeader() {
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      child: Row(
+        children: [
+          // Logo & Title
+          Container(
+            padding: const EdgeInsets.all(5),
+            decoration: BoxDecoration(
+              border: Border.all(color: const Color(0xFF005F46), width: 1.5),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.favorite_rounded,
+                color: Color(0xFF005F46), size: 20),
+          ),
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Text(
+                'Seven sisters care',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF005F46),
+                ),
+              ),
+              Text(
+                'Compassionate care everyday',
+                style: TextStyle(fontSize: 11, color: Color(0xFF4CAF50)),
+              ),
+            ],
+          ),
+          const Spacer(),
+
+          // Notification Bell
+          IconButton(
+            icon: const Icon(Icons.notifications_active_rounded,
+                color: Color(0xFF263238), size: 24),
+            onPressed: () {},
+          ),
+          const SizedBox(width: 6),
+
+          // Care Giver Pill
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFD6EFE5),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFF74B49B), width: 1),
+            ),
+            child: Row(
+              children: const [
+                Icon(Icons.person, color: Color(0xFF005F46), size: 18),
+                SizedBox(width: 6),
+                Text(
+                  'Care Giver',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF005F46),
+                  ),
+                ),
+                SizedBox(width: 4),
+                Icon(Icons.keyboard_arrow_down_rounded,
+                    color: Color(0xFF005F46), size: 18),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // CARD 1: PATIENT PROFILE & SETTINGS
+  // ---------------------------------------------------------------------------
+  Widget _buildPatientProfileAndSettingsCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Patient info
+          Row(
+            children: [
+              ClipOval(
+                child: Image.asset(
+                  'assets/images/family.jpg',
+                  width: 50,
+                  height: 50,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      const CircleAvatar(
+                    radius: 25,
+                    backgroundColor: Color(0xFFFDD835),
+                    child: Icon(Icons.person, color: Colors.white, size: 28),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Patient Name',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF005F46),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        const Text(
+                          'Age: 67',
+                          style: TextStyle(fontSize: 12, color: Colors.black87),
+                        ),
+                        const SizedBox(width: 10),
+                        const Expanded(
+                          child: Text(
+                            'Text/Reading Preference',
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                fontSize: 11, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        InkWell(
+                          onTap: () =>
+                              setState(() => _textReadingPreferenceYes = true),
+                          child: Row(
+                            children: [
+                              Icon(
+                                _textReadingPreferenceYes
+                                    ? Icons.radio_button_checked
+                                    : Icons.radio_button_off,
+                                size: 14,
+                                color: const Color(0xFF005F46),
+                              ),
+                              const SizedBox(width: 4),
+                              const Text('Yes', style: TextStyle(fontSize: 11)),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        InkWell(
+                          onTap: () =>
+                              setState(() => _textReadingPreferenceYes = false),
+                          child: Row(
+                            children: [
+                              Icon(
+                                !_textReadingPreferenceYes
+                                    ? Icons.radio_button_checked
+                                    : Icons.radio_button_off,
+                                size: 14,
+                                color: const Color(0xFF005F46),
+                              ),
+                              const SizedBox(width: 4),
+                              const Text('NO', style: TextStyle(fontSize: 11)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          // Collapsible Settings
+          Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFF7FAF8),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE0ECE6)),
+            ),
+            child: Column(
+              children: [
+                InkWell(
+                  onTap: () =>
+                      setState(() => _settingsExpanded = !_settingsExpanded),
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.settings,
+                            size: 16, color: Color(0xFF005F46)),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Settings',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF005F46),
+                          ),
+                        ),
+                        const Spacer(),
+                        Icon(
+                          _settingsExpanded
+                              ? Icons.keyboard_arrow_up
+                              : Icons.keyboard_arrow_down,
+                          size: 18,
+                          color: const Color(0xFF005F46),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (_settingsExpanded) ...[
+                  const Divider(height: 1, color: Color(0xFFE0ECE6)),
+                  _buildSettingRow(Icons.language, 'Language'),
+                  _buildSettingRow(Icons.palette_outlined, 'Traditional Themes'),
+                  _buildSettingRow(Icons.volume_up_outlined, 'Traditional Sounds'),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 6),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: const [
+                            Icon(Icons.logout_rounded,
+                                size: 14, color: Colors.red),
+                            SizedBox(width: 4),
+                            Text('Logout',
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.red,
+                                    fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                        const Text(
+                          'More',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF005F46),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSettingRow(IconData icon, String title) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: Row(
+        children: [
+          Icon(icon, size: 15, color: const Color(0xFF005F46)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(title,
+                style:
+                    const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+          ),
+          const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // CARD 2: REMAINDER NOTIFICATIONS
+  // ---------------------------------------------------------------------------
+  Widget _buildRemainderNotificationsCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Pill
+          Row(
+            children: const [
+              Icon(Icons.notifications_active_rounded,
+                  color: Color(0xFF005F46), size: 18),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Remainder Notifications',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF005F46),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          _buildNotificationPill('Breakfast', 'Completed', true),
+          const SizedBox(height: 6),
+          _buildNotificationPill('Aspirin', 'Completed', true),
+          const SizedBox(height: 6),
+          _buildNotificationPill('Hydration', 'Missed', false),
+          const SizedBox(height: 6),
+          _buildNotificationPill('Lunch', 'Missed', false),
+          const SizedBox(height: 6),
+          _buildNotificationPill('Prayer', 'Completed', true),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotificationPill(String title, String status, bool isCompleted) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7FAF8),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2EBE5)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFD48B1C),
+            ),
+          ),
+          Row(
+            children: [
+              Text(
+                status,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: isCompleted
+                      ? const Color(0xFF2E7D32)
+                      : const Color(0xFFD32F2F),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Icon(
+                isCompleted ? Icons.check_circle : Icons.cancel,
+                color: isCompleted
+                    ? const Color(0xFF2E7D32)
+                    : const Color(0xFFD32F2F),
+                size: 16,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // CARD 3: MEMORY ENGAGING ACTIVITIES
+  // ---------------------------------------------------------------------------
+  Widget _buildMemoryActivitiesCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: const [
+              Icon(Icons.favorite_rounded, color: Color(0xFF2E7D32), size: 18),
+              SizedBox(width: 8),
+              Text(
+                'Memory Engaging Activities',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF005F46),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // 2x2 Grid of Activities
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _buildActivityItem(
+                  'Family Recognition',
+                  '40%',
+                  0.40,
+                  Icons.people_alt_rounded,
+                  const Color(0xFFE91E63),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildActivityItem(
+                  'Daily Routine Recall',
+                  '88%',
+                  0.88,
+                  Icons.schedule_rounded,
+                  const Color(0xFF00BCD4),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _buildActivityItem(
+                  'Listening to Playlist',
+                  '90%',
+                  0.90,
+                  Icons.music_note_rounded,
+                  const Color(0xFFFF4081),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildActivityItem(
+                  'Reading (If Preferred)',
+                  '45%',
+                  0.45,
+                  Icons.menu_book_rounded,
+                  const Color(0xFF7E57C2),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActivityItem(String title, String percentText, double value,
+      IconData icon, Color iconColor) {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7FAF8),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE2EBE5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: iconColor, size: 20),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                      fontSize: 11, fontWeight: FontWeight.bold),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              percentText,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF005F46),
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: value,
+              backgroundColor: const Color(0xFFE0ECE6),
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(Color(0xFF2E7D32)),
+              minHeight: 6,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // CARD 4: COGNITIVE GAMES (4 DOMAINS)
+  // ---------------------------------------------------------------------------
+  Widget _buildCognitiveGamesCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: const [
+              Icon(Icons.psychology_rounded, color: Color(0xFF005F46), size: 20),
+              SizedBox(width: 8),
+              Text(
+                'Cognitive Games',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF005F46),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // 4 Domain Columns
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _buildDomainColumn(
+                  '1. Memory Domain',
+                  '50%',
+                  [
+                    _GameItemData('Pair Finder', '50%', Icons.style,
+                        const Color(0xFFE65100)),
+                    _GameItemData('Memory Hunt', '66%', Icons.extension,
+                        const Color(0xFF2E7D32)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildDomainColumn(
+                  '2. Attention & Concentration',
+                  '60%',
+                  [
+                    _GameItemData('Continuous Focus', '90%', Icons.adjust,
+                        const Color(0xFFFBC02D)),
+                    _GameItemData('Find Difference', '70%', Icons.search,
+                        const Color(0xFF1976D2)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildDomainColumn(
+                  '3. Executive Plan',
+                  '60%',
+                  [
+                    _GameItemData('Smartchoice', '88%', Icons.lightbulb,
+                        const Color(0xFFE91E63)),
+                    _GameItemData('Smart sort', '77%', Icons.inventory_2,
+                        const Color(0xFF00897B)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildDomainColumn(
+                  '4. Perceptual Motor',
+                  '45%',
+                  [
+                    _GameItemData('Shape Match', '50%', Icons.category,
+                        const Color(0xFF3949AB)),
+                    _GameItemData('Missing Piece', '49%', Icons.handyman,
+                        const Color(0xFFD81B60)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDomainColumn(
+      String title, String badgeScore, List<_GameItemData> games) {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7FAF8),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE2EBE5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                      fontSize: 11, fontWeight: FontWeight.bold),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(5),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFCFE8DC),
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  badgeScore,
+                  style: const TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF005F46),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          for (final game in games) ...[
+            Container(
+              margin: const EdgeInsets.only(bottom: 6),
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFE8F0EC)),
+              ),
+              child: Row(
+                children: [
+                  Icon(game.icon, color: game.iconColor, size: 20),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          game.name,
+                          style: const TextStyle(
+                              fontSize: 10, fontWeight: FontWeight.w600),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          game.accuracy,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF005F46),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // CARD 5: REMAINDER MANAGEMENT
+  // ---------------------------------------------------------------------------
+  Widget _buildRemainderManagementCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: const [
+              Icon(Icons.calendar_month_rounded,
+                  color: Color(0xFF005F46), size: 20),
+              SizedBox(width: 8),
+              Text(
+                'Remainder Management',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF005F46),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Column 1: Medicine
+              Expanded(
+                flex: 5,
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF7FAF8),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFE2EBE5)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.medication_rounded,
+                              size: 16, color: Color(0xFF005F46)),
+                          const SizedBox(width: 4),
+                          const Expanded(
+                            child: Text('Medicine',
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    fontSize: 12, fontWeight: FontWeight.bold)),
+                          ),
+                          const SizedBox(width: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 5, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF005F46),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text('+ Add',
+                                style: TextStyle(
+                                    fontSize: 8.5,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold)),
+                          ),
+                          const SizedBox(width: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade300,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text('Edit',
+                                style: TextStyle(
+                                    fontSize: 9, color: Colors.black87)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Aspirin
+                      Text('Aspirin',
+                          style: const TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 3),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildPillTag('Dosage', '1 TABLET',
+                                    const Color(0xFFD4E6F1)),
+                                const SizedBox(height: 3),
+                                _buildPillTag(
+                                    'Time', '9:00 AM', const Color(0xFFEAECEE)),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            width: 50,
+                            height: 35,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: Colors.grey.shade300),
+                            ),
+                            child: const Icon(Icons.medication,
+                                color: Color(0xFF005F46), size: 24),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      // Metformin
+                      Text('Metformin',
+                          style: const TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 3),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildPillTag('Dosage', '1 TABLET',
+                                    const Color(0xFFD4E6F1)),
+                                const SizedBox(height: 3),
+                                _buildPillTag(
+                                    'Time', '9:00 PM', const Color(0xFFEAECEE)),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFD5D8DC),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: const Text(
+                              'Upload\nImage',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  fontSize: 8, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(width: 10),
+
+              // Column 2: Hydration & Customized & Doctor & Food
+              Expanded(
+                flex: 6,
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        // Hydration
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF7FAF8),
+                              borderRadius: BorderRadius.circular(8),
+                              border:
+                                  Border.all(color: const Color(0xFFE2EBE5)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(Icons.water_drop,
+                                        size: 14, color: Color(0xFF0288D1)),
+                                    const SizedBox(width: 4),
+                                    const Expanded(
+                                      child: Text('Hydration',
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold)),
+                                    ),
+                                    const Text('+Add',
+                                        style: TextStyle(
+                                            fontSize: 8,
+                                            color: Color(0xFF005F46),
+                                            fontWeight: FontWeight.bold)),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                const Text('Time: 9:00 AM',
+                                    style: TextStyle(
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.w600)),
+                                const Text('Time: 12:00 PM',
+                                    style: TextStyle(
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.w600)),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+
+                        // Customized
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF7FAF8),
+                              borderRadius: BorderRadius.circular(8),
+                              border:
+                                  Border.all(color: const Color(0xFFE2EBE5)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(Icons.note_alt,
+                                        size: 14, color: Color(0xFFE91E63)),
+                                    const SizedBox(width: 4),
+                                    const Expanded(
+                                      child: Text('Customized',
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold)),
+                                    ),
+                                    const Text('+Add',
+                                        style: TextStyle(
+                                            fontSize: 8,
+                                            color: Color(0xFF005F46),
+                                            fontWeight: FontWeight.bold)),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                const Text('Morning Walk 7:00 AM',
+                                    style: TextStyle(
+                                        fontSize: 8.5,
+                                        color: Color(0xFFD48B1C),
+                                        fontWeight: FontWeight.w600)),
+                                const Text('Prayer 4:00 PM',
+                                    style: TextStyle(
+                                        fontSize: 8.5,
+                                        color: Color(0xFFD48B1C),
+                                        fontWeight: FontWeight.w600)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    // Doctor Appointment & Food
+                    Row(
+                      children: [
+                        // Doctor Appointment
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF7FAF8),
+                              borderRadius: BorderRadius.circular(8),
+                              border:
+                                  Border.all(color: const Color(0xFFE2EBE5)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: const [
+                                    Icon(Icons.medical_services,
+                                        size: 14, color: Color(0xFF005F46)),
+                                    SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text('Doctor\nAppointment',
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                              fontSize: 9.5,
+                                              fontWeight: FontWeight.bold,
+                                              height: 1.1)),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                const Text('Appointment Date:',
+                                    style: TextStyle(fontSize: 8)),
+                                const Text('16 May 2026',
+                                    style: TextStyle(
+                                        fontSize: 10,
+                                        color: Color(0xFFD48B1C),
+                                        fontWeight: FontWeight.bold)),
+                                const Text('Current Time: 9:00AM',
+                                    style: TextStyle(fontSize: 8)),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+
+                        // Food
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF7FAF8),
+                              borderRadius: BorderRadius.circular(8),
+                              border:
+                                  Border.all(color: const Color(0xFFE2EBE5)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(Icons.restaurant,
+                                        size: 14, color: Color(0xFF5D6D7E)),
+                                    const SizedBox(width: 4),
+                                    const Expanded(
+                                      child: Text('Food',
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold)),
+                                    ),
+                                    const Text('Edit',
+                                        style: TextStyle(
+                                            fontSize: 8, color: Colors.grey)),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                const Text('Breakfast 8:00 AM',
+                                    style: TextStyle(
+                                        fontSize: 8.5,
+                                        color: Color(0xFFD48B1C))),
+                                const Text('Lunch 1:00PM',
+                                    style: TextStyle(
+                                        fontSize: 8.5,
+                                        color: Color(0xFFD48B1C))),
+                                const Text('Dinner 8:00PM',
+                                    style: TextStyle(
+                                        fontSize: 8.5,
+                                        color: Color(0xFFD48B1C))),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPillTag(String label, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        '$label: $value',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+            fontSize: 9, fontWeight: FontWeight.bold, color: Colors.black87),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // CARD 6: REPORT GENERATOR (WEEKLY / MONTHLY / CUSTOM)
+  // ---------------------------------------------------------------------------
+  Widget _buildReportGeneratorCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              const Icon(Icons.assignment_rounded,
+                  color: Color(0xFF005F46), size: 20),
+              const SizedBox(width: 8),
+              const Text(
+                'Report Generator',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF005F46),
+                ),
+              ),
+              const Spacer(),
+              // Mode selection buttons: Weekly / Monthly / Custom
+              _buildReportBasisChip('Weekly'),
+              const SizedBox(width: 6),
+              _buildReportBasisChip('Monthly'),
+              const SizedBox(width: 6),
+              _buildReportBasisChip('Custom'),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          Row(
+            children: [
+              // Date range display / picker trigger
+              Expanded(
+                child: InkWell(
+                  onTap: _pickDateRange,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F5E9),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFF81C784)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.date_range,
+                            color: Color(0xFF005F46), size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Generate Report For ($_reportBasis):',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF005F46),
+                                ),
+                              ),
+                              Text(
+                                _reportDateRangeString,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (_reportBasis == 'Custom')
+                          const Icon(Icons.edit_calendar,
+                              color: Color(0xFF005F46), size: 18),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(width: 14),
+
+              // Action Buttons
+              Column(
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                              'Generating $_reportBasis Report for $_reportDateRangeString...'),
+                          backgroundColor: const Color(0xFF005F46),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4CAF50),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text(
+                      'Generate\nReport',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          height: 1.1),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: const [
+                      Icon(Icons.picture_as_pdf, color: Colors.red, size: 14),
+                      SizedBox(width: 4),
+                      Text('Export as PDF',
+                          style: TextStyle(
+                              fontSize: 9.5,
+                              color: Colors.red,
+                              fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReportBasisChip(String label) {
+    final isSelected = _reportBasis == label;
+
+    return InkWell(
+      onTap: () {
+        if (label == 'Custom') {
+          _pickDateRange();
+        } else {
+          setState(() {
+            _reportBasis = label;
+          });
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF005F46) : const Color(0xFFE8F5E9),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF005F46) : const Color(0xFF81C784),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: isSelected ? Colors.white : const Color(0xFF005F46),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GameItemData {
+  final String name;
+  final String accuracy;
+  final IconData icon;
+  final Color iconColor;
+
+  _GameItemData(this.name, this.accuracy, this.icon, this.iconColor);
 }

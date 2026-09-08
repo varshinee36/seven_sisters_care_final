@@ -78,7 +78,6 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
                   padding: const EdgeInsets.only(
                       left: 20, right: 20, top: 16, bottom: 8),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       ClipOval(
                         child: Image.asset(
@@ -95,15 +94,25 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
                           },
                         ),
                       ),
-                      const Text(
-                        "Settings",
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF005F46),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          "Settings",
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF005F46),
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 50),
+                      IconButton(
+                        icon: const Icon(Icons.volume_up,
+                            color: Colors.black87, size: 28),
+                        onPressed: () {
+                          // TODO: Connect voice-over audio later.
+                        },
+                        tooltip: 'Voice over',
+                      ),
                     ],
                   ),
                 ),

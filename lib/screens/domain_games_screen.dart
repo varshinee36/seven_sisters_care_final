@@ -316,7 +316,7 @@ class DomainGamesScreen extends StatelessWidget {
                   builder: (context) => const PairFinderTutorial(),
                 ),
               );
-            } else if (cleanTitle == 'Continuous Focus') {
+            } else if (cleanTitle == 'Continuous Focus' || cleanTitle == 'Object Focus') {
               Navigator.push(
                 context,
                 MaterialPageRoute(

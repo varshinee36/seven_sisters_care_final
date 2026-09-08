@@ -12,6 +12,14 @@ import 'package:seven_sisters_care/screens/patient/patient_home_screen.dart';
 import 'package:seven_sisters_care/screens/caregiver/caregiver_home_screen.dart';
 
 void main() {
+  testWidgets('MainScreen loads and displays welcome message', (WidgetTester tester) async {
+    await tester.pumpWidget(const SevenSistersCare(home: MainScreen()));
+
+    // Verify that the welcome text and title are rendered.
+    expect(find.text('Seven Sisters Care'), findsWidgets);
+    expect(find.text('Welcome!'), findsOneWidget);
+  });
+
   testWidgets('App starts with SplashScreen and navigates to GetStartedScreen',
       (WidgetTester tester) async {
     await tester.pumpWidget(const MyApp());

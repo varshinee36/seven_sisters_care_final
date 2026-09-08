@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../continuous_focus_tutorial.dart';
 
 class GamesAttentionScreen extends StatefulWidget {
   const GamesAttentionScreen({super.key});
@@ -29,12 +30,21 @@ class _GamesAttentionScreenState extends State<GamesAttentionScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text("$title Session Started!"),
-                  backgroundColor: color,
-                ),
-              );
+              if (title.contains("Continuous Focus")) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ContinuousFocusTutorial(),
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text("$title Session Started!"),
+                    backgroundColor: color,
+                  ),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: color,
@@ -137,11 +147,14 @@ class _GamesAttentionScreenState extends State<GamesAttentionScreen> {
                     color: const Color(0xFF5C6BC0),
                     assetPath: "assets/images/attention.jpg",
                     fallbackIcon: Icons.center_focus_strong_rounded,
-                    onTap: () => _openGameDialog(
-                      "Object Focus",
-                      "Keep visual concentration on specific target shapes while ignoring moving distractors.",
-                      const Color(0xFF5C6BC0),
-                    ),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ContinuousFocusTutorial(),
+                        ),
+                      );
+                    },
                   ),
 
                   const SizedBox(height: 20),

@@ -1,8 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:seven_sisters_care/screens/auth/create_account_screen.dart';
+import '../../services/api_service.dart';
+import '../auth/login_screen.dart';
 
 class CaregiverDetailsScreen extends StatefulWidget {
-  const CaregiverDetailsScreen({super.key});
+  final String patientName;
+  final String dob;
+  final String gender;
+  final String languagePreference;
+  final bool readingPreference;
+  final String dementiaStage;
+
+  const CaregiverDetailsScreen({
+    super.key,
+    this.patientName = "",
+    this.dob = "",
+    this.gender = "Male",
+    this.languagePreference = "English",
+    this.readingPreference = true,
+    this.dementiaStage = "Mild",
+  });
 
   @override
   State<CaregiverDetailsScreen> createState() =>
@@ -17,13 +33,169 @@ class _CaregiverDetailsScreenState
   final TextEditingController phoneController =
       TextEditingController();
 
+  final TextEditingController passwordController =
+      TextEditingController();
+
   String relationship = "Son";
+  bool hidePassword = true;
+  bool isLoading = false;
 
   @override
   void dispose() {
     nameController.dispose();
     phoneController.dispose();
+    passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleSubmit() async {
+    final caregiverName = nameController.text.trim();
+    final phone = phoneController.text.trim();
+    final password = passwordController.text;
+
+    if (caregiverName.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please enter caregiver name"),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    if (caregiverName.length < 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Name must contain at least 3 characters"),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    if (phone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please enter phone number"),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    if (!RegExp(r'^[0-9]{10}$').hasMatch(phone)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please enter a valid 10 digit phone number"),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    if (password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please enter password"),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    if (password.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Password must be at least 6 characters"),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      // 1. Call User Registration API (POST /auth/register)
+      final userResult = await ApiService.registerUser(
+        username: caregiverName,
+        password: password,
+        role: "caregiver",
+      );
+
+      if (!mounted) return;
+
+      if (userResult["message"] != "User registered successfully") {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(userResult["detail"] ??
+                userResult["message"] ??
+                "User registration failed"),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+        return;
+      }
+
+      // 2. Call Patient Registration API (POST /patient/register)
+      final patientResult = await ApiService.registerPatient(
+        caregiverUsername: caregiverName,
+        patientName: widget.patientName.isNotEmpty
+            ? widget.patientName
+            : caregiverName,
+        dob: widget.dob.isNotEmpty ? widget.dob : "1950-01-01",
+        gender: widget.gender,
+        languagePreference: widget.languagePreference,
+        readingPreference: widget.readingPreference,
+        dementiaStage: widget.dementiaStage,
+      );
+
+      if (!mounted) return;
+
+      if (patientResult["message"] == "Patient registered successfully" ||
+          patientResult["patient_id"] != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Registration successful! Please login."),
+            backgroundColor: Color(0xFF005F46),
+          ),
+        );
+
+        // Navigate to LoginScreen
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const LoginScreen(),
+          ),
+          (route) => false,
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(patientResult["detail"] ??
+                patientResult["message"] ??
+                "Patient registration failed"),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Registration error: $e"),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -226,7 +398,7 @@ class _CaregiverDetailsScreenState
 
                     DropdownButtonFormField<
                         String>(
-                      value: relationship,
+                      initialValue: relationship,
 
                       decoration:
                           InputDecoration(
@@ -312,122 +484,72 @@ class _CaregiverDetailsScreenState
                       ),
                     ),
 
+                    const SizedBox(height: 20),
+
+                    const Text(
+                      "Password",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+
+                    const SizedBox(height: 6),
+
+                    TextField(
+                      controller: passwordController,
+                      obscureText: hidePassword,
+                      decoration: InputDecoration(
+                        hintText: "Enter Password",
+                        filled: true,
+                        fillColor: Colors.white,
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            hidePassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              hidePassword = !hidePassword;
+                            });
+                          },
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+
                     const SizedBox(height: 30),
 
                     SizedBox(
-                      width:
-                          double.infinity,
+                      width: double.infinity,
                       height: 55,
-
-                      child:
-                          ElevatedButton(
-                        onPressed: () {
-                          if (nameController
-                              .text
-                              .trim()
-                              .isEmpty) {
-                            ScaffoldMessenger
-                                    .of(
-                                        context)
-                                .showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  "Please enter caregiver name",
-                                ),
-                              ),
-                            );
-                            return;
-                          }
-
-                          if (nameController
-                                  .text
-                                  .trim()
-                                  .length <
-                              3) {
-                            ScaffoldMessenger
-                                    .of(
-                                        context)
-                                .showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  "Name must contain at least 3 characters",
-                                ),
-                              ),
-                            );
-                            return;
-                          }
-
-                          if (phoneController
-                              .text
-                              .trim()
-                              .isEmpty) {
-                            ScaffoldMessenger
-                                    .of(
-                                        context)
-                                .showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  "Please enter phone number",
-                                ),
-                              ),
-                            );
-                            return;
-                          }
-
-                          if (!RegExp(
-                            r'^[0-9]{10}$',
-                          ).hasMatch(
-                              phoneController
-                                  .text)) {
-                            ScaffoldMessenger
-                                    .of(
-                                        context)
-                                .showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  "Please enter a valid 10 digit phone number",
-                                ),
-                              ),
-                            );
-                            return;
-                          }
-
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder:
-                                  (context) =>
-                                      const CreateAccountScreen(),
-                            ),
-                          );
-                        },
-
-                        style:
-                            ElevatedButton
-                                .styleFrom(
-                          backgroundColor:
-                              const Color(
-                                  0xFF005F46),
-
-                          shape:
-                              RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius
-                                    .circular(
-                                        15),
+                      child: ElevatedButton(
+                        onPressed: isLoading ? null : _handleSubmit,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF005F46),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
                           ),
                         ),
-
-                        child: const Text(
-                          "Submit",
-                          style: TextStyle(
-                            fontSize: 20,
-                            color:
-                                Colors.white,
-                            fontWeight:
-                                FontWeight.bold,
-                          ),
-                        ),
+                        child: isLoading
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2.5,
+                                ),
+                              )
+                            : const Text(
+                                "Submit",
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                       ),
                     ),
 

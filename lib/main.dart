@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 
 import 'screens/splash_screen.dart';
+<<<<<<< HEAD
 import 'screens/games_screen.dart';
+=======
+import 'services/app_settings_service.dart';
+>>>>>>> 132fb5e (Added FastAPI backend, MongoDB Atlas integration, login and registration)
 
 void main() {
   runApp(const SevenSistersCare());
@@ -13,6 +17,7 @@ class SevenSistersCare extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Seven Sisters Care',
@@ -22,6 +27,52 @@ class SevenSistersCare extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2E7D5B)),
       ),
       home: home ?? const SplashScreen(),
+=======
+    return ListenableBuilder(
+      listenable: AppSettingsService.instance,
+      builder: (context, _) {
+        final settings = AppSettingsService.instance;
+
+        return MaterialApp(
+          title: 'Seven Sisters Care',
+          debugShowCheckedModeBanner: false,
+          themeMode: settings.themeMode,
+          theme: ThemeData(
+            useMaterial3: true,
+            brightness: Brightness.light,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFF005F46),
+              brightness: Brightness.light,
+              primary: const Color(0xFF005F46),
+              secondary: const Color(0xFF74B49B),
+              surface: const Color(0xFFF7FAF8),
+            ),
+            scaffoldBackgroundColor: const Color(0xFFF7FAF8),
+          ),
+          darkTheme: ThemeData(
+            useMaterial3: true,
+            brightness: Brightness.dark,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFF74B49B),
+              brightness: Brightness.dark,
+              primary: const Color(0xFF74B49B),
+              secondary: const Color(0xFF005F46),
+              surface: const Color(0xFF263238),
+            ),
+            scaffoldBackgroundColor: const Color(0xFF1E2623),
+          ),
+          builder: (context, child) {
+            return MediaQuery(
+              data: MediaQuery.of(context).copyWith(
+                textScaler: TextScaler.linear(settings.fontScale),
+              ),
+              child: child!,
+            );
+          },
+          home: const SplashScreen(),
+        );
+      },
+>>>>>>> 132fb5e (Added FastAPI backend, MongoDB Atlas integration, login and registration)
     );
   }
 }

@@ -29,6 +29,8 @@ class _PatientRegistrationScreenState
     super.dispose();
   }
 
+  DateTime? selectedDob;
+
   Future<void> selectDate(BuildContext context) async {
     DateTime? pickedDate = await showDatePicker(
       context: context,
@@ -38,9 +40,10 @@ class _PatientRegistrationScreenState
     );
 
     if (pickedDate != null) {
+      selectedDob = pickedDate;
       setState(() {
         dobController.text =
-            "${pickedDate.day}-${pickedDate.month}-${pickedDate.year}";
+            "${pickedDate.day.toString().padLeft(2, '0')}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.year}";
       });
     }
   }
@@ -236,44 +239,39 @@ class _PatientRegistrationScreenState
                       ),
                     ),
 
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Material(
-                            color: Colors.transparent,
-                            child: RadioListTile(
-                              dense: true,
-                              value: "Male",
-                              groupValue: gender,
-                              title:
-                                  const Text("Male"),
-                              onChanged: (value) {
-                                setState(() {
-                                  gender = value!;
-                                });
-                              },
+                    RadioGroup<String>(
+                      groupValue: gender,
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() {
+                            gender = value;
+                          });
+                        }
+                      },
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Material(
+                              color: Colors.transparent,
+                              child: RadioListTile<String>(
+                                dense: true,
+                                value: "Male",
+                                title: const Text("Male"),
+                              ),
                             ),
                           ),
-                        ),
-
-                        Expanded(
-                          child: Material(
-                            color: Colors.transparent,
-                            child: RadioListTile(
-                              dense: true,
-                              value: "Female",
-                              groupValue: gender,
-                              title:
-                                  const Text("Female"),
-                              onChanged: (value) {
-                                setState(() {
-                                  gender = value!;
-                                });
-                              },
+                          Expanded(
+                            child: Material(
+                              color: Colors.transparent,
+                              child: RadioListTile<String>(
+                                dense: true,
+                                value: "Female",
+                                title: const Text("Female"),
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
 
                     const SizedBox(height: 15),
@@ -289,7 +287,7 @@ class _PatientRegistrationScreenState
                     const SizedBox(height: 5),
 
                     DropdownButtonFormField<String>(
-                      value: language,
+                      initialValue: language,
                       decoration:
                           const InputDecoration(
                         filled: true,
@@ -330,48 +328,39 @@ class _PatientRegistrationScreenState
                       ),
                     ),
 
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Material(
-                            color: Colors.transparent,
-                            child: RadioListTile(
-                              dense: true,
-                              title:
-                                  const Text("Yes"),
-                              value: "Yes",
-                              groupValue:
-                                  readingPreference,
-                              onChanged: (value) {
-                                setState(() {
-                                  readingPreference =
-                                      value!;
-                                });
-                              },
+                    RadioGroup<String>(
+                      groupValue: readingPreference,
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() {
+                            readingPreference = value;
+                          });
+                        }
+                      },
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Material(
+                              color: Colors.transparent,
+                              child: RadioListTile<String>(
+                                dense: true,
+                                title: const Text("Yes"),
+                                value: "Yes",
+                              ),
                             ),
                           ),
-                        ),
-
-                        Expanded(
-                          child: Material(
-                            color: Colors.transparent,
-                            child: RadioListTile(
-                              dense: true,
-                              title:
-                                  const Text("No"),
-                              value: "No",
-                              groupValue:
-                                  readingPreference,
-                              onChanged: (value) {
-                                setState(() {
-                                  readingPreference =
-                                      value!;
-                                });
-                              },
+                          Expanded(
+                            child: Material(
+                              color: Colors.transparent,
+                              child: RadioListTile<String>(
+                                dense: true,
+                                title: const Text("No"),
+                                value: "No",
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
 
                     const SizedBox(height: 15),
@@ -387,7 +376,7 @@ class _PatientRegistrationScreenState
                     const SizedBox(height: 5),
 
                     DropdownButtonFormField<String>(
-                      value: dementiaStage,
+                      initialValue: dementiaStage,
                       decoration:
                           const InputDecoration(
                         filled: true,
@@ -431,6 +420,7 @@ class _PatientRegistrationScreenState
                                 content: Text(
                                   "Please enter patient name",
                                 ),
+                                backgroundColor: Colors.redAccent,
                               ),
                             );
                             return;
@@ -446,16 +436,38 @@ class _PatientRegistrationScreenState
                                 content: Text(
                                   "Please select date of birth",
                                 ),
+                                backgroundColor: Colors.redAccent,
                               ),
                             );
                             return;
                           }
 
+                          // Format DOB to YYYY-MM-DD for backend API
+                          final String formattedDob = selectedDob != null
+                              ? "${selectedDob!.year}-${selectedDob!.month.toString().padLeft(2, '0')}-${selectedDob!.day.toString().padLeft(2, '0')}"
+                              : () {
+                                  final parts = dobController.text.trim().split('-');
+                                  if (parts.length == 3 && parts[0].length == 4) {
+                                    return dobController.text.trim();
+                                  } else if (parts.length == 3) {
+                                    return "${parts[2]}-${parts[1].padLeft(2, '0')}-${parts[0].padLeft(2, '0')}";
+                                  }
+                                  return dobController.text.trim();
+                                }();
+
                           Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) =>
-                                  const CaregiverDetailsScreen(),
+                                  CaregiverDetailsScreen(
+                                patientName: nameController.text.trim(),
+                                dob: formattedDob,
+                                gender: gender,
+                                languagePreference: language,
+                                readingPreference:
+                                    readingPreference == "Yes",
+                                dementiaStage: dementiaStage,
+                              ),
                             ),
                           );
                         },

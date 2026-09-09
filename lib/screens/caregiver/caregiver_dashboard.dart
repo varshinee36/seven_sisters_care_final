@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'caregiver_analytics_dashboard.dart';
+import '../../services/family_contacts_service.dart';
 
 /// Caregiver Dashboard matching the Seven Sisters Care design.
 ///
@@ -107,11 +108,322 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
           builder: (_) => const CaregiverAnalyticsDashboard(),
         ),
       );
+    } else if (label == 'Settings') {
+      setState(() {
+        _activeTab = label;
+      });
+      _showFamilyContactsDialog();
     } else {
       setState(() {
         _activeTab = label;
       });
     }
+  }
+
+  void _showFamilyContactsDialog() {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Container(
+            width: 500,
+            padding: const EdgeInsets.all(20),
+            child: ListenableBuilder(
+              listenable: FamilyContactsService.instance,
+              builder: (ctx, _) {
+                final contacts = FamilyContactsService.instance.contacts;
+
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE8F5E9),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.contact_phone_rounded,
+                            color: Color(0xFF005F46),
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Family & Emergency Contacts',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF005F46),
+                                ),
+                              ),
+                              Text(
+                                'Contacts appear on Patient Home screen for one-touch calling',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(dialogContext),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Add Contact Button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.add_rounded, size: 18),
+                        label: const Text('Add Family Contact (Son, Daughter...)'),
+                        onPressed: () => _showAddContactDialog(dialogContext),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF005F46),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Contacts List
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 320),
+                      child: contacts.isEmpty
+                          ? Container(
+                              padding: const EdgeInsets.all(24),
+                              alignment: Alignment.center,
+                              child: const Text(
+                                'No contacts uploaded yet. Click above to add a contact.',
+                                style: TextStyle(color: Colors.grey, fontSize: 13),
+                              ),
+                            )
+                          : ListView.separated(
+                              shrinkWrap: true,
+                              itemCount: contacts.length,
+                              separatorBuilder: (context, index) => const SizedBox(height: 8),
+                              itemBuilder: (cContext, index) {
+                                final c = contacts[index];
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF7FAF8),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                        color: const Color(0xFFE2EBE5)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      CircleAvatar(
+                                        backgroundColor: c.avatarColor,
+                                        radius: 18,
+                                        child: Icon(c.icon,
+                                            color: Colors.white, size: 20),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Wrap(
+                                              crossAxisAlignment:
+                                                  WrapCrossAlignment.center,
+                                              spacing: 6,
+                                              children: [
+                                                Text(
+                                                  c.name,
+                                                  style: const TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.black87,
+                                                  ),
+                                                ),
+                                                Container(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 6, vertical: 2),
+                                                  decoration: BoxDecoration(
+                                                    color: c.avatarColor
+                                                        .withValues(alpha: 0.15),
+                                                    borderRadius:
+                                                        BorderRadius.circular(4),
+                                                  ),
+                                                  child: Text(
+                                                    c.relationship,
+                                                    style: TextStyle(
+                                                      fontSize: 10,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: c.avatarColor,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            Text(
+                                              c.phoneNumber,
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey.shade700,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.delete_outline,
+                                            color: Colors.redAccent, size: 20),
+                                        tooltip: 'Delete contact',
+                                        onPressed: () {
+                                          FamilyContactsService.instance
+                                              .deleteContact(c.id);
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showAddContactDialog(BuildContext parentContext) {
+    final nameController = TextEditingController();
+    final relationshipController = TextEditingController(text: 'Son');
+    final phoneController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: parentContext,
+      builder: (formDialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.person_add_rounded, color: Color(0xFF005F46)),
+              SizedBox(width: 8),
+              Text(
+                'Add Family Contact',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Contact Name',
+                    hintText: 'e.g. Rahul, Priya, Dr. Borah',
+                    prefixIcon: Icon(Icons.person),
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) {
+                      return 'Please enter a contact name';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: relationshipController,
+                  decoration: const InputDecoration(
+                    labelText: 'Relationship',
+                    hintText: 'e.g. Son, Daughter, Caregiver, Doctor',
+                    prefixIcon: Icon(Icons.family_restroom),
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) {
+                      return 'Please enter relationship';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'Phone Number',
+                    hintText: 'e.g. +91 9876543210',
+                    prefixIcon: Icon(Icons.phone),
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) {
+                      return 'Please enter phone number';
+                    }
+                    return null;
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(formDialogContext),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF005F46),
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                if (formKey.currentState!.validate()) {
+                  FamilyContactsService.instance.addContact(
+                    name: nameController.text.trim(),
+                    relationship: relationshipController.text.trim(),
+                    phoneNumber: phoneController.text.trim(),
+                  );
+                  Navigator.pop(formDialogContext);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                          'Added ${nameController.text.trim()} (${relationshipController.text.trim()}) to Family Contacts!'),
+                      backgroundColor: const Color(0xFF005F46),
+                    ),
+                  );
+                }
+              },
+              child: const Text('Save Contact'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -543,6 +855,11 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
                 ),
                 if (_settingsExpanded) ...[
                   const Divider(height: 1, color: Color(0xFFE0ECE6)),
+                  _buildSettingRow(
+                    Icons.contact_phone_rounded,
+                    'Family & Emergency Contacts',
+                    onTap: _showFamilyContactsDialog,
+                  ),
                   _buildSettingRow(Icons.language, 'Language'),
                   _buildSettingRow(Icons.palette_outlined, 'Traditional Themes'),
                   _buildSettingRow(Icons.volume_up_outlined, 'Traditional Sounds'),
@@ -584,20 +901,24 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
     );
   }
 
-  Widget _buildSettingRow(IconData icon, String title) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      child: Row(
-        children: [
-          Icon(icon, size: 15, color: const Color(0xFF005F46)),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(title,
-                style:
-                    const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
-          ),
-          const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
-        ],
+  Widget _buildSettingRow(IconData icon, String title, {VoidCallback? onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Row(
+          children: [
+            Icon(icon, size: 15, color: const Color(0xFF005F46)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(title,
+                  style:
+                      const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+            ),
+            const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
+          ],
+        ),
       ),
     );
   }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../patient/patient_home_screen.dart';
-import '../caregiver/caregiver_home_screen.dart';
+import '../caregiver/caregiver_dashboard.dart';
 
 class ChooseRoleScreen extends StatelessWidget {
   const ChooseRoleScreen({super.key});
@@ -116,7 +116,7 @@ class ChooseRoleScreen extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const CaregiverHomeScreen(),
+                          builder: (context) => const CaregiverDashboard(),
                         ),
                       );
                     },

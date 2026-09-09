@@ -3,7 +3,11 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+<<<<<<< HEAD
   battery_plus
+=======
+  url_launcher_windows
+>>>>>>> 132fb5e (Added FastAPI backend, MongoDB Atlas integration, login and registration)
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'games_screen.dart';
 import 'activites_screen.dart';
 import 'patient_settings_screen.dart';
+import '../../services/family_contacts_service.dart';
+import '../../services/app_launcher_service.dart';
 
 class PatientHomeScreen extends StatefulWidget {
   const PatientHomeScreen({super.key});
@@ -164,87 +166,104 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   void _openFamilySheet() {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
       backgroundColor: Colors.white,
       builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return ListenableBuilder(
+          listenable: FamilyContactsService.instance,
+          builder: (context, _) {
+            final contacts = FamilyContactsService.instance.contacts;
+
+            return Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Icon(Icons.diversity_3_rounded,
-                          color: Color(0xFF4C9866), size: 28),
-                      SizedBox(width: 10),
-                      Text(
-                        "My Family & Care",
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF005F46),
-                        ),
+                      const Row(
+                        children: [
+                          Icon(Icons.diversity_3_rounded,
+                              color: Color(0xFF4C9866), size: 28),
+                          SizedBox(width: 10),
+                          Text(
+                            "My Family & Care",
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF005F46),
+                            ),
+                          ),
+                        ],
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
                       ),
                     ],
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
+                  const SizedBox(height: 16),
+                  if (contacts.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Center(
+                        child: Text(
+                          "No family contacts added yet.\nCaregiver can add contacts in Caregiver Dashboard.",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.black54, fontSize: 13),
+                        ),
+                      ),
+                    )
+                  else
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: MediaQuery.of(context).size.height * 0.5,
+                      ),
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: contacts.length,
+                        separatorBuilder: (context, index) => const SizedBox(height: 10),
+                        itemBuilder: (context, index) {
+                          final contact = contacts[index];
+                          return _buildFamilyContact(contact: contact);
+                        },
+                      ),
+                    ),
+                  const SizedBox(height: 16),
                 ],
               ),
-              const SizedBox(height: 16),
-              _buildFamilyContact(
-                name: "Rahul (Son)",
-                role: "Primary Caregiver",
-                phone: "+91 9876543210",
-              ),
-              const SizedBox(height: 10),
-              _buildFamilyContact(
-                name: "Priya (Daughter)",
-                role: "Emergency Contact",
-                phone: "+91 9876543211",
-              ),
-              const SizedBox(height: 10),
-              _buildFamilyContact(
-                name: "Dr. Borah",
-                role: "Consultant Physician",
-                phone: "+91 9876543212",
-              ),
-              const SizedBox(height: 20),
-            ],
-          ),
+            );
+          },
         );
       },
     );
   }
 
-  Widget _buildFamilyContact({
-    required String name,
-    required String role,
-    required String phone,
-  }) {
+  Widget _buildFamilyContact({required FamilyContact contact}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF4C9866).withValues(alpha: 0.09),
+        color: contact.avatarColor.withValues(alpha: 0.09),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: const Color(0xFF4C9866).withValues(alpha: 0.3),
+          color: contact.avatarColor.withValues(alpha: 0.3),
         ),
       ),
       child: Row(
         children: [
-          const CircleAvatar(
-            backgroundColor: Color(0xFF4C9866),
+          CircleAvatar(
+            backgroundColor: contact.avatarColor,
             radius: 20,
-            child: Icon(Icons.person, color: Colors.white, size: 22),
+            child: Icon(contact.icon, color: Colors.white, size: 22),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -252,18 +271,20 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  name,
+                  contact.displayName,
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),
                 ),
+                const SizedBox(height: 2),
                 Text(
-                  role,
+                  contact.phoneNumber,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 12.5,
                     color: Colors.grey.shade700,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
@@ -272,13 +293,17 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
           IconButton(
             icon: const Icon(Icons.phone_rounded,
                 color: Color(0xFF005F46), size: 28),
-            onPressed: () {
+            tooltip: 'Call ${contact.name}',
+            onPressed: () async {
+              ScaffoldMessenger.of(context).clearSnackBars();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text("Calling $name ($phone)..."),
+                  content: Text("Calling ${contact.displayName} (${contact.phoneNumber})..."),
                   backgroundColor: const Color(0xFF005F46),
+                  duration: const Duration(seconds: 2),
                 ),
               );
+              await AppLauncherService.makePhoneCall(contact.phoneNumber);
             },
           ),
         ],

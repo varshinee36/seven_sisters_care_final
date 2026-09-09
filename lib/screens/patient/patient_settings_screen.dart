@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../services/app_launcher_service.dart';
+import '../../services/app_settings_service.dart';
 
 class PatientSettingsScreen extends StatefulWidget {
   const PatientSettingsScreen({super.key});
@@ -8,9 +10,6 @@ class PatientSettingsScreen extends StatefulWidget {
 }
 
 class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
-  String _selectedTheme = "System";
-  String _selectedFontSize = "Medium";
-
   final List<Map<String, dynamic>> _quickAccessApps = [
     {
       "name": "YouTube",
@@ -44,22 +43,58 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
     },
   ];
 
-  void _showAppLaunchSnackbar(String appName) {
+  Future<void> _handleAppLaunch(String appName) async {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text("Launching $appName..."),
-        duration: const Duration(seconds: 2),
+        content: Text("Opening $appName..."),
+        duration: const Duration(seconds: 1),
         backgroundColor: const Color(0xFF005F46),
       ),
     );
+
+    bool launched = false;
+    switch (appName) {
+      case "YouTube":
+        launched = await AppLauncherService.launchYouTube();
+        break;
+      case "WhatsApp":
+        launched = await AppLauncherService.launchWhatsApp();
+        break;
+      case "Instagram":
+        launched = await AppLauncherService.launchInstagram();
+        break;
+      case "Google Contacts":
+        launched = await AppLauncherService.launchContacts();
+        break;
+      case "Phone Dialer":
+        launched = await AppLauncherService.launchPhoneDialer();
+        break;
+    }
+
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Opening $appName in browser or device fallback."),
+          duration: const Duration(seconds: 2),
+          backgroundColor: const Color(0xFF005F46),
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
+    final settings = AppSettingsService.instance;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final cardBg = isDark ? const Color(0xFF242E2A) : Colors.white;
+    final containerBg = isDark ? const Color(0xFF1B2320) : const Color(0xFFF7FAF8);
+    final textMain = isDark ? Colors.white : Colors.black87;
+    final textMuted = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF2B2525),
+      backgroundColor: isDark ? const Color(0xFF141917) : const Color(0xFF2B2525),
       body: SafeArea(
         child: Center(
           child: Container(
@@ -68,7 +103,7 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
                 ? const EdgeInsets.symmetric(vertical: 20)
                 : EdgeInsets.zero,
             decoration: BoxDecoration(
-              color: const Color(0xFFF7FAF8),
+              color: containerBg,
               borderRadius: BorderRadius.circular(screenWidth > 600 ? 30 : 0),
             ),
             child: Column(
@@ -95,21 +130,30 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      const Expanded(
+                      Expanded(
                         child: Text(
                           "Settings",
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF005F46),
+                            color: isDark
+                                ? const Color(0xFF74B49B)
+                                : const Color(0xFF005F46),
                           ),
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.volume_up,
-                            color: Colors.black87, size: 28),
+                        icon: Icon(Icons.volume_up,
+                            color: isDark ? Colors.white70 : Colors.black87,
+                            size: 28),
                         onPressed: () {
-                          // TODO: Connect voice-over audio later.
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Voice-over: Patient Settings screen"),
+                              duration: Duration(seconds: 2),
+                              backgroundColor: Color(0xFF005F46),
+                            ),
+                          );
                         },
                         tooltip: 'Voice over',
                       ),
@@ -117,7 +161,10 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
                   ),
                 ),
 
-                const Divider(height: 1, color: Color(0xFFCFEDE2)),
+                Divider(
+                  height: 1,
+                  color: isDark ? const Color(0xFF2C3934) : const Color(0xFFCFEDE2),
+                ),
 
                 // Settings Body
                 Expanded(
@@ -127,11 +174,11 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Section 1: Theme
-                        _buildSectionHeader(Icons.palette_outlined, "Theme"),
+                        _buildSectionHeader(Icons.palette_outlined, "Theme", isDark),
                         const SizedBox(height: 10),
                         Container(
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: cardBg,
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
@@ -147,29 +194,57 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
                                 title: "Light",
                                 subtitle: "Clean white background with dark text",
                                 value: "Light",
-                                groupValue: _selectedTheme,
+                                groupValue: settings.themeName,
+                                textColor: textMain,
+                                subtitleColor: textMuted,
                                 onChanged: (val) {
-                                  setState(() => _selectedTheme = val!);
+                                  if (val != null) {
+                                    setState(() {
+                                      settings.setTheme(val);
+                                    });
+                                  }
                                 },
                               ),
-                              const Divider(height: 1, indent: 16, endIndent: 16),
+                              Divider(
+                                height: 1,
+                                indent: 16,
+                                endIndent: 16,
+                                color: isDark ? const Color(0xFF2C3934) : Colors.grey.shade200,
+                              ),
                               _buildRadioTile(
                                 title: "Dark",
                                 subtitle: "Low-light dark contrast mode",
                                 value: "Dark",
-                                groupValue: _selectedTheme,
+                                groupValue: settings.themeName,
+                                textColor: textMain,
+                                subtitleColor: textMuted,
                                 onChanged: (val) {
-                                  setState(() => _selectedTheme = val!);
+                                  if (val != null) {
+                                    setState(() {
+                                      settings.setTheme(val);
+                                    });
+                                  }
                                 },
                               ),
-                              const Divider(height: 1, indent: 16, endIndent: 16),
+                              Divider(
+                                height: 1,
+                                indent: 16,
+                                endIndent: 16,
+                                color: isDark ? const Color(0xFF2C3934) : Colors.grey.shade200,
+                              ),
                               _buildRadioTile(
                                 title: "System",
                                 subtitle: "Follow device system preferences",
                                 value: "System",
-                                groupValue: _selectedTheme,
+                                groupValue: settings.themeName,
+                                textColor: textMain,
+                                subtitleColor: textMuted,
                                 onChanged: (val) {
-                                  setState(() => _selectedTheme = val!);
+                                  if (val != null) {
+                                    setState(() {
+                                      settings.setTheme(val);
+                                    });
+                                  }
                                 },
                               ),
                             ],
@@ -180,11 +255,11 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
 
                         // Section 2: Font Size
                         _buildSectionHeader(
-                            Icons.format_size_rounded, "Font Size"),
+                            Icons.format_size_rounded, "Font Size", isDark),
                         const SizedBox(height: 10),
                         Container(
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: cardBg,
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
@@ -200,29 +275,57 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
                                 title: "Small",
                                 subtitle: "Standard compact text sizing",
                                 value: "Small",
-                                groupValue: _selectedFontSize,
+                                groupValue: settings.fontSizeName,
+                                textColor: textMain,
+                                subtitleColor: textMuted,
                                 onChanged: (val) {
-                                  setState(() => _selectedFontSize = val!);
+                                  if (val != null) {
+                                    setState(() {
+                                      settings.setFontSize(val);
+                                    });
+                                  }
                                 },
                               ),
-                              const Divider(height: 1, indent: 16, endIndent: 16),
+                              Divider(
+                                height: 1,
+                                indent: 16,
+                                endIndent: 16,
+                                color: isDark ? const Color(0xFF2C3934) : Colors.grey.shade200,
+                              ),
                               _buildRadioTile(
                                 title: "Medium (Default)",
                                 subtitle: "Balanced readability and comfort",
                                 value: "Medium",
-                                groupValue: _selectedFontSize,
+                                groupValue: settings.fontSizeName,
+                                textColor: textMain,
+                                subtitleColor: textMuted,
                                 onChanged: (val) {
-                                  setState(() => _selectedFontSize = val!);
+                                  if (val != null) {
+                                    setState(() {
+                                      settings.setFontSize(val);
+                                    });
+                                  }
                                 },
                               ),
-                              const Divider(height: 1, indent: 16, endIndent: 16),
+                              Divider(
+                                height: 1,
+                                indent: 16,
+                                endIndent: 16,
+                                color: isDark ? const Color(0xFF2C3934) : Colors.grey.shade200,
+                              ),
                               _buildRadioTile(
                                 title: "Large",
                                 subtitle: "High visibility large text for easy reading",
                                 value: "Large",
-                                groupValue: _selectedFontSize,
+                                groupValue: settings.fontSizeName,
+                                textColor: textMain,
+                                subtitleColor: textMuted,
                                 onChanged: (val) {
-                                  setState(() => _selectedFontSize = val!);
+                                  if (val != null) {
+                                    setState(() {
+                                      settings.setFontSize(val);
+                                    });
+                                  }
                                 },
                               ),
                             ],
@@ -233,23 +336,23 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
 
                         // Section 3: Quick Access Apps
                         _buildSectionHeader(
-                            Icons.apps_rounded, "Quick Access Apps"),
+                            Icons.apps_rounded, "Quick Access Apps", isDark),
                         const SizedBox(height: 10),
                         ListView.separated(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: _quickAccessApps.length,
-                          separatorBuilder: (context, index) => const SizedBox(height: 10),
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(height: 10),
                           itemBuilder: (context, index) {
                             final app = _quickAccessApps[index];
                             return Material(
-                              color: Colors.white,
+                              color: cardBg,
                               borderRadius: BorderRadius.circular(14),
                               elevation: 1,
                               child: InkWell(
                                 borderRadius: BorderRadius.circular(14),
-                                onTap: () =>
-                                    _showAppLaunchSnackbar(app["name"]),
+                                onTap: () => _handleAppLaunch(app["name"] as String),
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 16, vertical: 12),
@@ -277,27 +380,29 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
                                               CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              app["name"],
-                                              style: const TextStyle(
+                                              app["name"] as String,
+                                              style: TextStyle(
                                                 fontSize: 16,
                                                 fontWeight: FontWeight.w600,
-                                                color: Colors.black87,
+                                                color: textMain,
                                               ),
                                             ),
                                             const SizedBox(height: 2),
                                             Text(
-                                              app["desc"],
+                                              app["desc"] as String,
                                               style: TextStyle(
                                                 fontSize: 12,
-                                                color: Colors.grey.shade600,
+                                                color: textMuted,
                                               ),
                                             ),
                                           ],
                                         ),
                                       ),
-                                      const Icon(
+                                      Icon(
                                         Icons.open_in_new_rounded,
-                                        color: Color(0xFF005F46),
+                                        color: isDark
+                                            ? const Color(0xFF74B49B)
+                                            : const Color(0xFF005F46),
                                         size: 20,
                                       ),
                                     ],
@@ -366,17 +471,18 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
     );
   }
 
-  Widget _buildSectionHeader(IconData icon, String title) {
+  Widget _buildSectionHeader(IconData icon, String title, bool isDark) {
+    final color = isDark ? const Color(0xFF74B49B) : const Color(0xFF005F46);
     return Row(
       children: [
-        Icon(icon, color: const Color(0xFF005F46), size: 22),
+        Icon(icon, color: color, size: 22),
         const SizedBox(width: 8),
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF005F46),
+            color: color,
           ),
         ),
       ],
@@ -388,26 +494,53 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
     required String subtitle,
     required String value,
     required String groupValue,
+    required Color textColor,
+    required Color subtitleColor,
     required ValueChanged<String?> onChanged,
   }) {
-    return RadioListTile<String>(
-      value: value,
-      groupValue: groupValue,
-      onChanged: onChanged,
-      activeColor: const Color(0xFF005F46),
-      title: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-          color: Colors.black87,
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: TextStyle(
-          fontSize: 12,
-          color: Colors.grey.shade600,
+    final isSelected = value == groupValue;
+
+    return InkWell(
+      onTap: () => onChanged(value),
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Icon(
+              isSelected
+                  ? Icons.radio_button_checked
+                  : Icons.radio_button_unchecked,
+              color: isSelected
+                  ? const Color(0xFF005F46)
+                  : Colors.grey.shade400,
+              size: 22,
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: textColor,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: subtitleColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

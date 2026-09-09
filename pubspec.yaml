@@ -34,8 +34,13 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+<<<<<<< HEAD
   video_player: ^2.14.0
   battery_plus: ^6.2.1 
+=======
+  url_launcher: ^6.3.2
+  http: ^1.6.0
+>>>>>>> 132fb5e (Added FastAPI backend, MongoDB Atlas integration, login and registration)
 
 dev_dependencies:
   flutter_test:

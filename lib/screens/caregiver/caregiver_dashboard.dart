@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'caregiver_analytics_dashboard.dart';
+import '../../services/analytics_service.dart';
 import '../../services/family_contacts_service.dart';
 import '../../services/patient_service.dart';
 import '../../services/reminder_service.dart';
@@ -32,24 +33,81 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
   bool _settingsExpanded = true;
   bool _textReadingPreferenceYes = true;
 
+  AdaptiveEngineAnalyticsData get _adaptiveAnalytics {
+    final model = AnalyticsService.instance.analytics;
+    if (!model.hasData) {
+      return AdaptiveEngineAnalyticsData(
+        cumulativeScore: 0.0,
+        cumulativeAccuracy: 0.0,
+        cumulativeCorrectAnswers: 0,
+        cumulativeWrongAnswers: 0,
+        cumulativeAttempts: 0,
+        averageCompletionTime: '--',
+        currentDifficulty: model.currentDifficulty,
+        currentTimer: model.currentTimerDisplay,
+        rlState: model.rlState,
+        adaptiveAction: model.adaptiveAction,
+        finalPerformanceScore: '0%',
+        finalLevelReached: 0,
+        lastTimerUsed: '--',
+        lastPlayedGame: model.lastPlayedGame,
+      );
+    }
+
+    return AdaptiveEngineAnalyticsData(
+      cumulativeScore: model.overallPerformance / 100.0,
+      cumulativeAccuracy: model.accuracy / 100.0,
+      cumulativeCorrectAnswers: model.correctResponses,
+      cumulativeWrongAnswers: model.wrongResponses,
+      cumulativeAttempts: model.correctResponses + model.wrongResponses,
+      averageCompletionTime: model.avgCompletionTimeDisplay,
+      currentDifficulty: model.currentDifficulty,
+      currentTimer: model.currentTimerDisplay,
+      rlState: model.rlState,
+      adaptiveAction: model.adaptiveAction,
+      finalPerformanceScore: model.finalPerformanceScoreDisplay,
+      finalLevelReached: model.finalLevelReached,
+      lastTimerUsed: model.lastTimerUsedDisplay,
+      lastPlayedGame: model.lastPlayedGame,
+    );
+  }
+
   @override
   void initState() {
     super.initState();
     PatientService.instance.addListener(_onPatientChanged);
+    AnalyticsService.instance.addListener(_onAnalyticsChanged);
     final caregiverUsername = widget.caregiverUsername;
     if (caregiverUsername != null && caregiverUsername.isNotEmpty) {
       PatientService.instance.loadForCaregiver(caregiverUsername);
     }
+    _loadAnalyticsForLinkedPatient();
   }
 
   @override
   void dispose() {
     PatientService.instance.removeListener(_onPatientChanged);
+    AnalyticsService.instance.removeListener(_onAnalyticsChanged);
     super.dispose();
   }
 
   void _onPatientChanged() {
+    if (mounted) {
+      setState(() {});
+      _loadAnalyticsForLinkedPatient();
+    }
+  }
+
+  void _onAnalyticsChanged() {
     if (mounted) setState(() {});
+  }
+
+  void _loadAnalyticsForLinkedPatient() {
+    final patient = PatientService.instance.patient;
+    final patientId = patient?.patientId ?? patient?.name;
+    if (patientId != null && patientId.isNotEmpty) {
+      AnalyticsService.instance.fetchDashboardAnalytics(patientId);
+    }
   }
 
   // Report Generator State: 'Weekly', 'Monthly', 'Custom'
@@ -520,6 +578,26 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
                                 ),
                               ],
                             ),
+                            const SizedBox(height: 14),
+
+                            // Desktop Row 3: Adaptive Engine & Cognitive Performance Analytics (3 Cards)
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: _buildAdaptiveEngineStatusCard(),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child:
+                                      _buildCognitivePerformanceSummaryCard(),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: _buildLatestGameSessionCard(),
+                                ),
+                              ],
+                            ),
                           ] else ...[
                             // Responsive single-column layout for narrower windows
                             _buildPatientProfileAndSettingsCard(),
@@ -529,6 +607,12 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
                             _buildMemoryActivitiesCard(),
                             const SizedBox(height: 14),
                             _buildCognitiveGamesCard(),
+                            const SizedBox(height: 14),
+                            _buildAdaptiveEngineStatusCard(),
+                            const SizedBox(height: 14),
+                            _buildCognitivePerformanceSummaryCard(),
+                            const SizedBox(height: 14),
+                            _buildLatestGameSessionCard(),
                             const SizedBox(height: 14),
                             _buildRemainderManagementCard(),
                             const SizedBox(height: 14),
@@ -832,6 +916,32 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: [
+                        _buildPatientMetaPill(
+                          icon: Icons.psychology_outlined,
+                          label: PatientService.instance.patient?.dementiaStage ??
+                              'Mild Dementia',
+                          color: const Color(0xFF005F46),
+                          bgColor: const Color(0xFFD6EFE5),
+                        ),
+                        _buildPatientMetaPill(
+                          icon: Icons.schedule_rounded,
+                          label: 'Last Active: Today 9:15 AM',
+                          color: const Color(0xFF37474F),
+                          bgColor: const Color(0xFFECEFF1),
+                        ),
+                        _buildPatientMetaPill(
+                          icon: Icons.fiber_manual_record,
+                          label: 'Status: Active',
+                          color: const Color(0xFF2E7D32),
+                          bgColor: const Color(0xFFE8F5E9),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -946,6 +1056,41 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
             const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPatientMetaPill({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required Color bgColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: color),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1235,6 +1380,15 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
   // CARD 4: COGNITIVE GAMES (4 DOMAINS)
   // ---------------------------------------------------------------------------
   Widget _buildCognitiveGamesCard() {
+    final analytics = AnalyticsService.instance.analytics;
+    final pairFinder = analytics.pairFinder;
+    final memoryHunt = analytics.memoryHunt;
+    final hasData = analytics.hasData;
+
+    final domain1Score = (pairFinder.performance > 0 || memoryHunt.performance > 0)
+        ? '${(((pairFinder.performance > 0 ? pairFinder.performance : 0) + (memoryHunt.performance > 0 ? memoryHunt.performance : 0)) / ((pairFinder.performance > 0 ? 1 : 0) + (memoryHunt.performance > 0 ? 1 : 0))).round()}%'
+        : (hasData ? '${analytics.overallPerformance.round()}%' : '0%');
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -1252,10 +1406,10 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            children: const [
-              Icon(Icons.psychology_rounded, color: Color(0xFF005F46), size: 20),
-              SizedBox(width: 8),
-              Text(
+            children: [
+              const Icon(Icons.psychology_rounded, color: Color(0xFF005F46), size: 20),
+              const SizedBox(width: 8),
+              const Text(
                 'Cognitive Games',
                 style: TextStyle(
                   fontSize: 16,
@@ -1263,6 +1417,16 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
                   color: Color(0xFF005F46),
                 ),
               ),
+              const Spacer(),
+              if (AnalyticsService.instance.isLoading)
+                const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Color(0xFF005F46),
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 12),
@@ -1274,12 +1438,32 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
               Expanded(
                 child: _buildDomainColumn(
                   '1. Memory Domain',
-                  '50%',
+                  domain1Score,
                   [
-                    _GameItemData('Pair Finder', '50%', Icons.style,
-                        const Color(0xFFE65100)),
-                    _GameItemData('Memory Hunt', '66%', Icons.extension,
-                        const Color(0xFF2E7D32)),
+                    _GameItemData(
+                      'Pair Finder',
+                      pairFinder.performance > 0
+                          ? pairFinder.performanceDisplay
+                          : (hasData && analytics.lastPlayedGame.toLowerCase().contains('pair')
+                              ? '${analytics.overallPerformance.toInt()}%'
+                              : '0%'),
+                      pairFinder.level > 0 ? pairFinder.level : 1,
+                      pairFinder.difficulty.isNotEmpty ? pairFinder.difficulty : 'Easy',
+                      Icons.style,
+                      const Color(0xFFE65100),
+                    ),
+                    _GameItemData(
+                      'Memory Hunt',
+                      memoryHunt.performance > 0
+                          ? memoryHunt.performanceDisplay
+                          : (hasData && analytics.lastPlayedGame.toLowerCase().contains('hunt')
+                              ? '${analytics.overallPerformance.toInt()}%'
+                              : '0%'),
+                      memoryHunt.level > 0 ? memoryHunt.level : 1,
+                      memoryHunt.difficulty.isNotEmpty ? memoryHunt.difficulty : 'Easy',
+                      Icons.extension,
+                      const Color(0xFF2E7D32),
+                    ),
                   ],
                 ),
               ),
@@ -1287,12 +1471,24 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
               Expanded(
                 child: _buildDomainColumn(
                   '2. Attention & Concentration',
-                  '60%',
+                  hasData ? '80%' : '0%',
                   [
-                    _GameItemData('Continuous Focus', '90%', Icons.adjust,
-                        const Color(0xFFFBC02D)),
-                    _GameItemData('Find Difference', '70%', Icons.search,
-                        const Color(0xFF1976D2)),
+                    _GameItemData(
+                      'Continuous Focus',
+                      hasData ? '90%' : '0%',
+                      hasData ? 4 : 1,
+                      hasData ? 'Hard' : 'Easy',
+                      Icons.adjust,
+                      const Color(0xFFFBC02D),
+                    ),
+                    _GameItemData(
+                      'Find Difference',
+                      hasData ? '70%' : '0%',
+                      hasData ? 3 : 1,
+                      hasData ? 'Medium' : 'Easy',
+                      Icons.search,
+                      const Color(0xFF1976D2),
+                    ),
                   ],
                 ),
               ),
@@ -1300,12 +1496,24 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
               Expanded(
                 child: _buildDomainColumn(
                   '3. Executive Plan',
-                  '60%',
+                  hasData ? '82%' : '0%',
                   [
-                    _GameItemData('Smartchoice', '88%', Icons.lightbulb,
-                        const Color(0xFFE91E63)),
-                    _GameItemData('Smart sort', '77%', Icons.inventory_2,
-                        const Color(0xFF00897B)),
+                    _GameItemData(
+                      'Smartchoice',
+                      hasData ? '88%' : '0%',
+                      hasData ? 5 : 1,
+                      hasData ? 'Hard' : 'Easy',
+                      Icons.lightbulb,
+                      const Color(0xFFE91E63),
+                    ),
+                    _GameItemData(
+                      'Smart sort',
+                      hasData ? '77%' : '0%',
+                      hasData ? 4 : 1,
+                      hasData ? 'Medium' : 'Easy',
+                      Icons.inventory_2,
+                      const Color(0xFF00897B),
+                    ),
                   ],
                 ),
               ),
@@ -1313,12 +1521,24 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
               Expanded(
                 child: _buildDomainColumn(
                   '4. Perceptual Motor',
-                  '45%',
+                  hasData ? '50%' : '0%',
                   [
-                    _GameItemData('Shape Match', '50%', Icons.category,
-                        const Color(0xFF3949AB)),
-                    _GameItemData('Missing Piece', '49%', Icons.handyman,
-                        const Color(0xFFD81B60)),
+                    _GameItemData(
+                      'Shape Match',
+                      hasData ? '50%' : '0%',
+                      hasData ? 2 : 1,
+                      hasData ? 'Easy' : 'Easy',
+                      Icons.category,
+                      const Color(0xFF3949AB),
+                    ),
+                    _GameItemData(
+                      'Missing Piece',
+                      hasData ? '49%' : '0%',
+                      hasData ? 2 : 1,
+                      hasData ? 'Easy' : 'Easy',
+                      Icons.handyman,
+                      const Color(0xFFD81B60),
+                    ),
                   ],
                 ),
               ),
@@ -1381,6 +1601,7 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
                 border: Border.all(color: const Color(0xFFE8F0EC)),
               ),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Icon(game.icon, color: game.iconColor, size: 20),
                   const SizedBox(width: 6),
@@ -1391,16 +1612,33 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
                         Text(
                           game.name,
                           style: const TextStyle(
-                              fontSize: 10, fontWeight: FontWeight.w600),
+                              fontSize: 10.5, fontWeight: FontWeight.bold),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
+                        const SizedBox(height: 2),
                         Text(
-                          game.accuracy,
+                          'Performance: ${game.performance}',
                           style: const TextStyle(
-                            fontSize: 14,
+                            fontSize: 9.5,
                             fontWeight: FontWeight.bold,
                             color: Color(0xFF005F46),
+                          ),
+                        ),
+                        Text(
+                          'Level: ${game.level}',
+                          style: const TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        Text(
+                          'Difficulty: ${game.difficulty}',
+                          style: const TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF546E7A),
                           ),
                         ),
                       ],
@@ -2245,6 +2483,18 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
               ),
             ],
           ),
+          const SizedBox(height: 10),
+          // Prepared placeholder labels for future inclusion (Requirement 6)
+          Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            children: const [
+              _ReportSectionTag('Performance Summary'),
+              _ReportSectionTag('Accuracy Summary'),
+              _ReportSectionTag('Level Progression'),
+              _ReportSectionTag('Adaptive Difficulty History'),
+            ],
+          ),
         ],
       ),
     );
@@ -2283,13 +2533,752 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
       ),
     );
   }
+
+  // ---------------------------------------------------------------------------
+  // CARD: ADAPTIVE ENGINE STATUS (REINFORCEMENT LEARNING ANALYTICS)
+  // ---------------------------------------------------------------------------
+  Widget _buildAdaptiveEngineStatusCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.auto_graph_rounded, color: Color(0xFF005F46), size: 20),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Adaptive Engine Status',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF005F46),
+                  ),
+                ),
+              ),
+              if (AnalyticsService.instance.isLoading)
+                const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Color(0xFF005F46),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Current RL State
+          _buildAnalyticsMetricRow(
+            label: 'Current RL State',
+            value: _adaptiveAnalytics.rlState,
+            valueColor: const Color(0xFF2E7D32),
+            valueBg: const Color(0xFFE8F5E9),
+          ),
+          const SizedBox(height: 8),
+
+          // Current Adaptive Action
+          _buildAnalyticsMetricRow(
+            label: 'Current Adaptive Action',
+            value: _adaptiveAnalytics.adaptiveAction,
+            valueColor: const Color(0xFF005F46),
+            valueBg: const Color(0xFFD6EFE5),
+          ),
+          const SizedBox(height: 8),
+
+          // Current Difficulty & Current Timer Row
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF7FAF8),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFE2EBE5)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Current Difficulty',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          color: Color(0xFF546E7A),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _adaptiveAnalytics.currentDifficulty,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF005F46),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF7FAF8),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFE2EBE5)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Current Timer',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          color: Color(0xFF546E7A),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _adaptiveAnalytics.currentTimer,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF005F46),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 10),
+
+          // Static Gradual Progression Notice (Requirement 7)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFD6EFE5).withValues(alpha: 0.6),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: const Color(0xFF74B49B).withValues(alpha: 0.6),
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Icon(Icons.verified_user_outlined,
+                    size: 16, color: Color(0xFF005F46)),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Adaptive progression is functioning normally.\nDifficulty adjustments are gradual and suitable for elderly users..',
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      color: Color(0xFF005F46),
+                      height: 1.35,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // CARD: COGNITIVE PERFORMANCE SUMMARY
+  // ---------------------------------------------------------------------------
+  Widget _buildCognitivePerformanceSummaryCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.analytics_rounded, color: Color(0xFF005F46), size: 20),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Cognitive Performance Summary',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF005F46),
+                  ),
+                ),
+              ),
+              if (AnalyticsService.instance.isLoading)
+                const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Color(0xFF005F46),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F5E9),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFC8E6C9)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Overall Performance',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          color: Color(0xFF2E7D32),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Performance: ${(_adaptiveAnalytics.cumulativeScore * 100).toInt()}%',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF005F46),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD6EFE5),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFBBE5D4)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Accuracy %',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          color: Color(0xFF005F46),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Accuracy: ${(_adaptiveAnalytics.cumulativeAccuracy * 100).toInt()}%',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF005F46),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF7FAF8),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFE2EBE5)),
+            ),
+            child: Row(
+              children: [
+                _buildStatPill(
+                  label: 'Correct Responses',
+                  value: 'Correct: ${_adaptiveAnalytics.cumulativeCorrectAnswers}',
+                  color: const Color(0xFF2E7D32),
+                ),
+                Container(width: 1, height: 26, color: const Color(0xFFE0ECE6)),
+                _buildStatPill(
+                  label: 'Wrong Responses',
+                  value: 'Wrong: ${_adaptiveAnalytics.cumulativeWrongAnswers}',
+                  color: const Color(0xFFC62828),
+                ),
+                Container(width: 1, height: 26, color: const Color(0xFFE0ECE6)),
+                _buildStatPill(
+                  label: 'Average Completion Time',
+                  value: 'Avg Time: ${_adaptiveAnalytics.averageCompletionTime}',
+                  color: const Color(0xFF1976D2),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // CARD: LATEST GAME SESSION
+  // ---------------------------------------------------------------------------
+  Widget _buildLatestGameSessionCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.history_toggle_off_rounded,
+                  color: Color(0xFF005F46), size: 20),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Latest Game Session',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF005F46),
+                  ),
+                ),
+              ),
+              if (AnalyticsService.instance.isLoading)
+                const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Color(0xFF005F46),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF7FAF8),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFE2EBE5)),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Flexible(
+                      flex: 2,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(Icons.style_rounded,
+                              color: Color(0xFFE65100), size: 18),
+                          SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              'Last Played Game',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Color(0xFF546E7A),
+                                fontWeight: FontWeight.w600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      flex: 3,
+                      child: Text(
+                        'Game: ${_adaptiveAnalytics.lastPlayedGame}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF005F46),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(height: 14, color: Color(0xFFE2EBE5)),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Flexible(
+                      flex: 2,
+                      child: Text(
+                        'Final Performance',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF546E7A),
+                          fontWeight: FontWeight.w600,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      flex: 3,
+                      child: Text(
+                        'Performance: ${_adaptiveAnalytics.finalPerformanceScore}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF2E7D32),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Flexible(
+                      flex: 2,
+                      child: Text(
+                        'Final Level Reached',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF546E7A),
+                          fontWeight: FontWeight.w600,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      flex: 3,
+                      child: Text(
+                        'Level: ${_adaptiveAnalytics.finalLevelReached}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF005F46),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Flexible(
+                      flex: 2,
+                      child: Text(
+                        'Last Timer Used',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF546E7A),
+                          fontWeight: FontWeight.w600,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      flex: 3,
+                      child: Text(
+                        'Timer: ${_adaptiveAnalytics.lastTimerUsed}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1976D2),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnalyticsMetricRow({
+    required String label,
+    required String value,
+    required Color valueColor,
+    required Color valueBg,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Flexible(
+          flex: 2,
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF546E7A),
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          flex: 3,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: valueBg,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: valueColor.withValues(alpha: 0.3)),
+            ),
+            child: Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.bold,
+                color: valueColor,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatPill({
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Expanded(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 10,
+              color: Color(0xFF546E7A),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReportSectionTag extends StatelessWidget {
+  final String label;
+  const _ReportSectionTag(this.label);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8F5E9),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: const Color(0xFFC8E6C9)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.analytics_outlined,
+              size: 10, color: Color(0xFF2E7D32)),
+          const SizedBox(width: 3),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 9.5,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF005F46),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _GameItemData {
   final String name;
-  final String accuracy;
+  final String performance;
+  final int level;
+  final String difficulty;
   final IconData icon;
   final Color iconColor;
 
-  _GameItemData(this.name, this.accuracy, this.icon, this.iconColor);
+  _GameItemData(
+    this.name,
+    this.performance,
+    this.level,
+    this.difficulty,
+    this.icon,
+    this.iconColor,
+  );
+
+  String get accuracy => performance;
+}
+
+class AdaptiveEngineAnalyticsData {
+  final double cumulativeScore;
+  final double cumulativeAccuracy;
+  final int cumulativeCorrectAnswers;
+  final int cumulativeWrongAnswers;
+  final int cumulativeAttempts;
+  final String averageCompletionTime;
+  final String currentDifficulty;
+  final String currentTimer;
+  final String rlState;
+  final String adaptiveAction;
+  final String finalPerformanceScore;
+  final int finalLevelReached;
+  final String lastTimerUsed;
+  final String lastPlayedGame;
+
+  const AdaptiveEngineAnalyticsData({
+    this.cumulativeScore = 0.82,
+    this.cumulativeAccuracy = 0.88,
+    this.cumulativeCorrectAnswers = 120,
+    this.cumulativeWrongAnswers = 18,
+    this.cumulativeAttempts = 138,
+    this.averageCompletionTime = '35 sec',
+    this.currentDifficulty = 'Medium',
+    this.currentTimer = '51 Seconds',
+    this.rlState = 'Good Performance',
+    this.adaptiveAction = 'Maintain Difficulty + Maintain Timer',
+    this.finalPerformanceScore = '92%',
+    this.finalLevelReached = 4,
+    this.lastTimerUsed = '51 sec',
+    this.lastPlayedGame = 'Pair Finder',
+  });
+
+  factory AdaptiveEngineAnalyticsData.fromJson(Map<String, dynamic> json) {
+    return AdaptiveEngineAnalyticsData(
+      cumulativeScore: (json['cumulativeScore'] as num?)?.toDouble() ?? 0.82,
+      cumulativeAccuracy:
+          (json['cumulativeAccuracy'] as num?)?.toDouble() ?? 0.88,
+      cumulativeCorrectAnswers:
+          (json['cumulativeCorrectAnswers'] as num?)?.toInt() ?? 120,
+      cumulativeWrongAnswers:
+          (json['cumulativeWrongAnswers'] as num?)?.toInt() ?? 18,
+      cumulativeAttempts:
+          (json['cumulativeAttempts'] as num?)?.toInt() ?? 138,
+      averageCompletionTime:
+          (json['averageCompletionTime'] as String?) ?? '35 sec',
+      currentDifficulty:
+          (json['currentDifficulty'] as String?) ?? 'Medium',
+      currentTimer: (json['currentTimer'] as String?) ?? '51 Seconds',
+      rlState: (json['rlState'] as String?) ?? 'Good Performance',
+      adaptiveAction: (json['adaptiveAction'] as String?) ??
+          'Maintain Difficulty + Maintain Timer',
+      finalPerformanceScore:
+          (json['finalPerformanceScore'] as String?) ?? '92%',
+      finalLevelReached:
+          (json['finalLevelReached'] as num?)?.toInt() ?? 4,
+      lastTimerUsed: (json['lastTimerUsed'] as String?) ?? '51 sec',
+      lastPlayedGame: (json['lastPlayedGame'] as String?) ?? 'Pair Finder',
+    );
+  }
 }

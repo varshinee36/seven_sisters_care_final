@@ -15,3 +15,10 @@ users_collection = db["users"]
 patients_collection = db["patients"]
 game_scores_collection = db["game_scores"]
 reminders_collection = db["reminders"]
+game_performance_collection = db["game_performance"]
+
+try:
+    game_performance_collection.create_index([("patient_id", 1), ("timestamp", -1)])
+    game_performance_collection.create_index([("patient_id", 1), ("game_name", 1)])
+except Exception:
+    pass

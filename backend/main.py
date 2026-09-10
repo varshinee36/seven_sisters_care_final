@@ -1,8 +1,8 @@
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 from routes.auth import router as auth_router
-from routes.auth import router as auth_router
 from routes.patient import router as patient_router
+from routes.analytics import router as analytics_router
 
 app = FastAPI(
     title="Seven Sisters Care API",
@@ -20,9 +20,8 @@ app.add_middleware(
 )
 
 app.include_router(patient_router)
-
-# Include Authentication Router
 app.include_router(auth_router)
+app.include_router(analytics_router)
 
 
 @app.get("/", tags=["Health"])

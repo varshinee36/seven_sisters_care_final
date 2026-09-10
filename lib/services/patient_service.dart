@@ -8,8 +8,10 @@ class RegisteredPatient {
     required this.dateOfBirth,
     required this.readingPreference,
     this.dementiaStage,
+    this.patientId,
   });
 
+  final String? patientId;
   final String name;
   final DateTime dateOfBirth;
   final bool readingPreference;
@@ -21,6 +23,7 @@ class RegisteredPatient {
     final dateOfBirth = dobValue == null ? null : DateTime.tryParse(dobValue);
     final readingPreference = json['reading_preference'];
     final dementiaStage = json['dementia_stage'] as String? ?? json['dementiaStage'] as String?;
+    final patientId = json['patient_id'] as String? ?? json['_id'] as String?;
 
     if (name == null || dateOfBirth == null || readingPreference is! bool) {
       return null;
@@ -31,6 +34,7 @@ class RegisteredPatient {
       dateOfBirth: dateOfBirth,
       readingPreference: readingPreference,
       dementiaStage: dementiaStage,
+      patientId: patientId,
     );
   }
 }

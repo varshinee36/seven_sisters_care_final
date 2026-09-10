@@ -99,4 +99,33 @@ class ApiService {
 
     return jsonDecode(response.body);
   }
+
+  /// 5. Get Dashboard Analytics (GET /analytics/dashboard/{patient_id})
+  static Future<Map<String, dynamic>> getDashboardAnalytics({
+    required String patientId,
+  }) async {
+    final response = await http.get(
+      Uri.parse("$baseUrl/analytics/dashboard/$patientId"),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    );
+
+    return jsonDecode(response.body);
+  }
+
+  /// 6. Save Game Performance Record (POST /analytics/record)
+  static Future<Map<String, dynamic>> saveGamePerformance(
+    Map<String, dynamic> performanceData,
+  ) async {
+    final response = await http.post(
+      Uri.parse("$baseUrl/analytics/record"),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: jsonEncode(performanceData),
+    );
+
+    return jsonDecode(response.body);
+  }
 }

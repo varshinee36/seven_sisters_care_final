@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../localization/app_localizations.dart';
 
 class GamesExecutivePlanScreen extends StatefulWidget {
   const GamesExecutivePlanScreen({super.key});
@@ -30,14 +31,14 @@ class _GamesExecutivePlanScreenState extends State<GamesExecutivePlanScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Close", style: TextStyle(color: Colors.grey)),
+            child: Text(context.loc.close, style: const TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text("$title Session Started!"),
+                  content: Text("$title ${context.loc.sessionStarted}"),
                   backgroundColor: color,
                 ),
               );
@@ -47,8 +48,8 @@ class _GamesExecutivePlanScreenState extends State<GamesExecutivePlanScreen> {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text("Start Playing",
-                style: TextStyle(color: Colors.white)),
+            child: Text(context.loc.startPlaying,
+                style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -111,7 +112,7 @@ class _GamesExecutivePlanScreenState extends State<GamesExecutivePlanScreen> {
                         onPressed: () {
                           // TODO: Connect voice-over audio later.
                         },
-                        tooltip: 'Voice over',
+                        tooltip: context.loc.voiceOver,
                       ),
                     ],
                   ),
@@ -125,10 +126,10 @@ class _GamesExecutivePlanScreenState extends State<GamesExecutivePlanScreen> {
                       color: const Color(0xFF4866A8),
                       borderRadius: BorderRadius.circular(30),
                     ),
-                    child: const Text(
-                      "Executive Planning",
+                    child: Text(
+                      context.loc.executivePlanning,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
@@ -141,13 +142,13 @@ class _GamesExecutivePlanScreenState extends State<GamesExecutivePlanScreen> {
 
                   // Daily Task Ordering
                   _buildGameCard(
-                    title: "Daily Task\nOrdering",
+                    title: context.loc.dailyTaskOrdering,
                     color: const Color(0xFF3F51B5),
                     assetPath: "assets/images/executiveplanning.jpg",
                     fallbackIcon: Icons.format_list_numbered_rounded,
                     onTap: () => _openGameDialog(
-                      "Daily Task Ordering",
-                      "Arrange essential morning and evening routines in the correct logical sequence.",
+                      context.loc.dailyTaskOrdering,
+                      context.loc.dailyTaskOrderingDesc,
                       const Color(0xFF3F51B5),
                     ),
                   ),
@@ -156,13 +157,13 @@ class _GamesExecutivePlanScreenState extends State<GamesExecutivePlanScreen> {
 
                   // Activity Sequencing
                   _buildGameCard(
-                    title: "Activity\nSequencing",
+                    title: context.loc.activitySequencing,
                     color: const Color(0xFF1E88E5),
                     assetPath: "assets/images/smartsort.jpg",
                     fallbackIcon: Icons.alt_route_rounded,
                     onTap: () => _openGameDialog(
-                      "Activity Sequencing",
-                      "Organize multi-step cooking, gardening, and wellness activities from start to completion.",
+                      context.loc.activitySequencing,
+                      context.loc.activitySequencingDesc,
                       const Color(0xFF1E88E5),
                     ),
                   ),
@@ -197,9 +198,9 @@ class _GamesExecutivePlanScreenState extends State<GamesExecutivePlanScreen> {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          const Text(
-                            "Back",
-                            style: TextStyle(
+                          Text(
+                            context.loc.back,
+                            style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
@@ -288,7 +289,7 @@ class _GamesExecutivePlanScreenState extends State<GamesExecutivePlanScreen> {
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text("Voice guidance for ${title.replaceAll('\n', ' ')}"),
+                        content: Text("${context.loc.voiceGuideFor} ${title.replaceAll('\n', ' ')}"),
                         duration: const Duration(seconds: 1),
                         backgroundColor: color,
                       ),

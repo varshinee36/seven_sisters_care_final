@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../localization/app_localizations.dart';
 import '../continuous_focus_tutorial.dart';
 
 class GamesAttentionScreen extends StatefulWidget {
@@ -25,7 +26,7 @@ class _GamesAttentionScreenState extends State<GamesAttentionScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Close", style: TextStyle(color: Colors.grey)),
+            child: Text(context.loc.close, style: const TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -40,7 +41,7 @@ class _GamesAttentionScreenState extends State<GamesAttentionScreen> {
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text("$title Session Started!"),
+                    content: Text("$title ${context.loc.sessionStarted}"),
                     backgroundColor: color,
                   ),
                 );
@@ -50,7 +51,7 @@ class _GamesAttentionScreenState extends State<GamesAttentionScreen> {
               backgroundColor: color,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text("Start Playing", style: TextStyle(color: Colors.white)),
+            child: Text(context.loc.startPlaying, style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -113,7 +114,7 @@ class _GamesAttentionScreenState extends State<GamesAttentionScreen> {
                         onPressed: () {
                           // TODO: Connect voice-over audio later.
                         },
-                        tooltip: 'Voice over',
+                        tooltip: context.loc.voiceOver,
                       ),
                     ],
                   ),
@@ -127,10 +128,10 @@ class _GamesAttentionScreenState extends State<GamesAttentionScreen> {
                       color: const Color(0xFF75469F),
                       borderRadius: BorderRadius.circular(30),
                     ),
-                    child: const Text(
-                      "Attention Games",
+                    child: Text(
+                      context.loc.attentionGames,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
@@ -143,7 +144,7 @@ class _GamesAttentionScreenState extends State<GamesAttentionScreen> {
 
                   // Object Focus
                   _buildGameCard(
-                    title: "Object\nFocus",
+                    title: context.loc.objectFocus,
                     color: const Color(0xFF5C6BC0),
                     assetPath: "assets/images/attention.jpg",
                     fallbackIcon: Icons.center_focus_strong_rounded,
@@ -161,13 +162,13 @@ class _GamesAttentionScreenState extends State<GamesAttentionScreen> {
 
                   // Find Differences
                   _buildGameCard(
-                    title: "Find\nDifferences",
+                    title: context.loc.findDifferences,
                     color: const Color(0xFFAB47BC),
                     assetPath: "assets/images/finddifference.jpg",
                     fallbackIcon: Icons.compare_rounded,
                     onTap: () => _openGameDialog(
-                      "Find Differences",
-                      "Carefully compare two similar pictures and discover subtle differences to boost sustained attention.",
+                      context.loc.findDifferences,
+                      context.loc.findDifferencesDesc,
                       const Color(0xFFAB47BC),
                     ),
                   ),
@@ -202,9 +203,9 @@ class _GamesAttentionScreenState extends State<GamesAttentionScreen> {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          const Text(
-                            "Back",
-                            style: TextStyle(
+                          Text(
+                            context.loc.back,
+                            style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,

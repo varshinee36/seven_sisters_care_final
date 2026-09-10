@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../localization/app_localizations.dart';
 import '../pair_finder_tutorial.dart';
 import 'memory_hunt_screen.dart';
 
@@ -15,19 +16,20 @@ class _GamesMemoryScreenState extends State<GamesMemoryScreen> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.style_rounded, color: Color(0xFFEA247F)),
-            SizedBox(width: 10),
-            Text("Pair Finder", style: TextStyle(fontWeight: FontWeight.bold)),
+            const Icon(Icons.style_rounded, color: Color(0xFFEA247F)),
+            const SizedBox(width: 10),
+            Text(context.loc.pairFinder,
+                style: const TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              "Match identical card pairs to exercise visual working memory and cognitive recall.",
-              style: TextStyle(fontSize: 15, height: 1.4),
+            Text(
+              context.loc.pairFinderDialogDesc,
+              style: const TextStyle(fontSize: 15, height: 1.4),
             ),
             const SizedBox(height: 20),
             Container(
@@ -51,7 +53,8 @@ class _GamesMemoryScreenState extends State<GamesMemoryScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Close", style: TextStyle(color: Colors.grey)),
+            child: Text(context.loc.close,
+                style: const TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -68,8 +71,8 @@ class _GamesMemoryScreenState extends State<GamesMemoryScreen> {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text("Start Playing",
-                style: TextStyle(color: Colors.white)),
+            child: Text(context.loc.startPlaying,
+                style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -141,7 +144,7 @@ class _GamesMemoryScreenState extends State<GamesMemoryScreen> {
                         onPressed: () {
                           // TODO: Connect voice-over audio later.
                         },
-                        tooltip: 'Voice over',
+                        tooltip: context.loc.voiceOver,
                       ),
                     ],
                   ),
@@ -156,10 +159,10 @@ class _GamesMemoryScreenState extends State<GamesMemoryScreen> {
                       color: const Color(0xFFEAA252),
                       borderRadius: BorderRadius.circular(30),
                     ),
-                    child: const Text(
-                      "Memory Games",
+                    child: Text(
+                      context.loc.memoryGames,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
@@ -172,7 +175,7 @@ class _GamesMemoryScreenState extends State<GamesMemoryScreen> {
 
                   // Game Card 1: Pair Finder
                   _buildGameCard(
-                    title: "Pair Finder",
+                    title: context.loc.pairFinder,
                     color: const Color(0xFFEA247F),
                     assetPath: "assets/images/pairfinder.jpg",
                     fallbackIcon: Icons.extension_rounded,
@@ -183,7 +186,7 @@ class _GamesMemoryScreenState extends State<GamesMemoryScreen> {
 
                   // Game Card 2: Memory Hunt
                   _buildGameCard(
-                    title: "Memory\nHunt",
+                    title: context.loc.memoryHunt,
                     color: const Color(0xFF7A97FF),
                     assetPath: "assets/images/memoryhunt.jpg",
                     fallbackIcon: Icons.search_rounded,
@@ -221,9 +224,9 @@ class _GamesMemoryScreenState extends State<GamesMemoryScreen> {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          const Text(
-                            "Back",
-                            style: TextStyle(
+                          Text(
+                            context.loc.back,
+                            style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,

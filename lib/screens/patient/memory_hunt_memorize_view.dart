@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../localization/app_localizations.dart';
 import 'memory_hunt_widgets.dart';
 
 /// Screen 1 — Memorize objects.
@@ -35,13 +36,13 @@ class MemoryHuntMemorizeView extends StatelessWidget {
         MemoryHuntHeader(onSpeaker: onSpeaker),
         const SizedBox(height: 16),
         MemoryHuntPill(
-          text: 'Memory Hunt',
+          text: context.loc.memoryHunt,
           color: const Color(0xFF7A97FF),
           onSpeaker: onSpeaker,
         ),
         const SizedBox(height: 10),
         MemoryHuntPill(
-          text: 'Level $level of 5',
+          text: context.loc.levelXOf5(level),
           color: const Color(0xFFEA247F),
           fontSize: 20,
           onSpeaker: onSpeaker,
@@ -60,7 +61,7 @@ class MemoryHuntMemorizeView extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Please remember these ${items.length} objects',
+                  context.loc.pleaseRememberObjects(items.length),
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 19,
@@ -73,7 +74,7 @@ class MemoryHuntMemorizeView extends StatelessWidget {
               IconButton(
                 icon: const Icon(Icons.volume_up, color: Colors.black87, size: 28),
                 onPressed: onSpeaker,
-                tooltip: 'Voice over',
+                tooltip: context.loc.voiceOver,
               ),
             ],
           ),

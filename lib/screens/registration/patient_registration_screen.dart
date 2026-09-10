@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'caregiver_details_screen.dart';
+import '../../localization/app_localizations.dart';
+import '../../providers/language_provider.dart';
+import '../../services/language_service.dart';
 
 class PatientRegistrationScreen extends StatefulWidget {
   const PatientRegistrationScreen({super.key});
@@ -21,6 +25,28 @@ class _PatientRegistrationScreenState
   String language = "English";
   String readingPreference = "Yes";
   String dementiaStage = "Mild";
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        try {
+          final currentLang =
+              context.read<LanguageProvider>().currentLanguageName;
+          setState(() {
+            language = currentLang;
+          });
+        } catch (_) {
+          final currentLang = LanguageService.nameFromCode(
+              LanguageService.instance.getSavedLanguage());
+          setState(() {
+            language = currentLang;
+          });
+        }
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -52,6 +78,7 @@ class _PatientRegistrationScreenState
   Widget build(BuildContext context) {
     double screenWidth =
         MediaQuery.of(context).size.width;
+    final loc = context.loc;
 
     return Scaffold(
       backgroundColor: const Color(0xFF2B2525),
@@ -76,9 +103,13 @@ class _PatientRegistrationScreenState
                       CrossAxisAlignment.start,
 
                   children: [
-                    const Text(
-                      "Setup Profile",
-                      style: TextStyle(fontSize: 14),
+                    Text(
+                      loc.setupProfile,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF005F46),
+                      ),
                     ),
 
                     const SizedBox(height: 10),
@@ -111,9 +142,9 @@ class _PatientRegistrationScreenState
                               BorderRadius.circular(10),
                         ),
 
-                        child: const Text(
-                          "Patient Details",
-                          style: TextStyle(
+                        child: Text(
+                          loc.patientDetails,
+                          style: const TextStyle(
                             fontSize: 24,
                             fontWeight:
                                 FontWeight.bold,
@@ -165,11 +196,12 @@ class _PatientRegistrationScreenState
 
                     const SizedBox(height: 25),
 
-                    const Text(
-                      "Patient Name",
-                      style: TextStyle(
+                    Text(
+                      loc.patientName,
+                      style: const TextStyle(
                         fontWeight:
                             FontWeight.w600,
+                        color: Color(0xFF005F46),
                       ),
                     ),
 
@@ -178,7 +210,7 @@ class _PatientRegistrationScreenState
                     TextField(
                       controller: nameController,
                       decoration: InputDecoration(
-                        hintText: "Enter Name",
+                        hintText: loc.enterName,
                         filled: true,
                         fillColor: Colors.white,
                         border:
@@ -192,11 +224,12 @@ class _PatientRegistrationScreenState
 
                     const SizedBox(height: 15),
 
-                    const Text(
-                      "Date of Birth",
-                      style: TextStyle(
+                    Text(
+                      loc.dateOfBirth,
+                      style: const TextStyle(
                         fontWeight:
                             FontWeight.w600,
+                        color: Color(0xFF005F46),
                       ),
                     ),
 
@@ -231,11 +264,12 @@ class _PatientRegistrationScreenState
 
                     const SizedBox(height: 15),
 
-                    const Text(
-                      "Gender",
-                      style: TextStyle(
+                    Text(
+                      loc.gender,
+                      style: const TextStyle(
                         fontWeight:
                             FontWeight.w600,
+                        color: Color(0xFF005F46),
                       ),
                     ),
 
@@ -256,7 +290,13 @@ class _PatientRegistrationScreenState
                               child: RadioListTile<String>(
                                 dense: true,
                                 value: "Male",
-                                title: const Text("Male"),
+                                title: Text(
+                                  loc.male,
+                                  style: const TextStyle(
+                                    color: Color(0xFF005F46),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -266,7 +306,13 @@ class _PatientRegistrationScreenState
                               child: RadioListTile<String>(
                                 dense: true,
                                 value: "Female",
-                                title: const Text("Female"),
+                                title: Text(
+                                  loc.female,
+                                  style: const TextStyle(
+                                    color: Color(0xFF005F46),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -276,55 +322,68 @@ class _PatientRegistrationScreenState
 
                     const SizedBox(height: 15),
 
-                    const Text(
-                      "Preferred Language",
-                      style: TextStyle(
+                    Text(
+                      loc.preferredLanguage,
+                      style: const TextStyle(
                         fontWeight:
                             FontWeight.w600,
+                        color: Color(0xFF005F46),
                       ),
                     ),
 
                     const SizedBox(height: 5),
 
                     DropdownButtonFormField<String>(
-                      initialValue: language,
+                      key: ValueKey(language),
+                      value: language,
                       decoration:
                           const InputDecoration(
                         filled: true,
                         fillColor: Colors.white,
                       ),
                       items: [
-                        "English",
-                        "Hindi",
-                        "Assamese",
-                        "Bodo",
-                        "Manipuri",
-                        "Mizo",
-                        "Khasi",
-                        "Garo",
-                      ]
-                          .map(
-                            (e) =>
-                                DropdownMenuItem(
-                              value: e,
-                              child: Text(e),
-                            ),
-                          )
-                          .toList(),
+                        DropdownMenuItem(
+                          value: "English",
+                          child: Text(loc.english),
+                        ),
+                        DropdownMenuItem(
+                          value: "Hindi",
+                          child: Text(loc.hindi),
+                        ),
+                        DropdownMenuItem(
+                          value: "Assamese",
+                          child: Text(loc.assamese),
+                        ),
+                        DropdownMenuItem(
+                          value: "Bengali",
+                          child: Text(loc.bengali),
+                        ),
+                      ],
                       onChanged: (value) {
-                        setState(() {
-                          language = value!;
-                        });
+                        if (value != null) {
+                          setState(() {
+                            language = value;
+                          });
+                          // Automatically update language across the entire application immediately!
+                          try {
+                            context
+                                .read<LanguageProvider>()
+                                .setLanguageByName(value);
+                          } catch (_) {
+                            LanguageService.instance.saveLanguageByName(value);
+                          }
+                        }
                       },
                     ),
 
                     const SizedBox(height: 15),
 
-                    const Text(
-                      "Reading/Text Games Preferred",
-                      style: TextStyle(
+                    Text(
+                      loc.readingPreference,
+                      style: const TextStyle(
                         fontWeight:
                             FontWeight.w600,
+                        color: Color(0xFF005F46),
                       ),
                     ),
 
@@ -344,7 +403,13 @@ class _PatientRegistrationScreenState
                               color: Colors.transparent,
                               child: RadioListTile<String>(
                                 dense: true,
-                                title: const Text("Yes"),
+                                title: Text(
+                                  loc.yes,
+                                  style: const TextStyle(
+                                    color: Color(0xFF005F46),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
                                 value: "Yes",
                               ),
                             ),
@@ -354,7 +419,13 @@ class _PatientRegistrationScreenState
                               color: Colors.transparent,
                               child: RadioListTile<String>(
                                 dense: true,
-                                title: const Text("No"),
+                                title: Text(
+                                  loc.no,
+                                  style: const TextStyle(
+                                    color: Color(0xFF005F46),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
                                 value: "No",
                               ),
                             ),
@@ -365,40 +436,45 @@ class _PatientRegistrationScreenState
 
                     const SizedBox(height: 15),
 
-                    const Text(
-                      "Dementia Stage",
-                      style: TextStyle(
+                    Text(
+                      loc.dementiaStage,
+                      style: const TextStyle(
                         fontWeight:
                             FontWeight.w600,
+                        color: Color(0xFF005F46),
                       ),
                     ),
 
                     const SizedBox(height: 5),
 
                     DropdownButtonFormField<String>(
-                      initialValue: dementiaStage,
+                      key: ValueKey(dementiaStage),
+                      value: dementiaStage,
                       decoration:
                           const InputDecoration(
                         filled: true,
                         fillColor: Colors.white,
                       ),
                       items: [
-                        "Mild",
-                        "Moderate",
-                        "Severe",
-                      ]
-                          .map(
-                            (e) =>
-                                DropdownMenuItem(
-                              value: e,
-                              child: Text(e),
-                            ),
-                          )
-                          .toList(),
+                        DropdownMenuItem(
+                          value: "Mild",
+                          child: Text(loc.mild),
+                        ),
+                        DropdownMenuItem(
+                          value: "Moderate",
+                          child: Text(loc.moderate),
+                        ),
+                        DropdownMenuItem(
+                          value: "Severe",
+                          child: Text(loc.severe),
+                        ),
+                      ],
                       onChanged: (value) {
-                        setState(() {
-                          dementiaStage = value!;
-                        });
+                        if (value != null) {
+                          setState(() {
+                            dementiaStage = value;
+                          });
+                        }
                       },
                     ),
 
@@ -416,9 +492,9 @@ class _PatientRegistrationScreenState
                             ScaffoldMessenger.of(
                                     context)
                                 .showSnackBar(
-                              const SnackBar(
+                              SnackBar(
                                 content: Text(
-                                  "Please enter patient name",
+                                  loc.pleaseEnterPatientName,
                                 ),
                                 backgroundColor: Colors.redAccent,
                               ),
@@ -432,14 +508,23 @@ class _PatientRegistrationScreenState
                             ScaffoldMessenger.of(
                                     context)
                                 .showSnackBar(
-                              const SnackBar(
+                              SnackBar(
                                 content: Text(
-                                  "Please select date of birth",
+                                  loc.pleaseSelectDob,
                                 ),
                                 backgroundColor: Colors.redAccent,
                               ),
                             );
                             return;
+                          }
+
+                          // Ensure language preference is saved
+                          try {
+                            context
+                                .read<LanguageProvider>()
+                                .setLanguageByName(language);
+                          } catch (_) {
+                            LanguageService.instance.saveLanguageByName(language);
                           }
 
                           // Format DOB to YYYY-MM-DD for backend API
@@ -485,9 +570,9 @@ class _PatientRegistrationScreenState
                           ),
                         ),
 
-                        child: const Text(
-                          "Next",
-                          style: TextStyle(
+                        child: Text(
+                          loc.next,
+                          style: const TextStyle(
                             fontSize: 20,
                             color: Colors.white,
                           ),

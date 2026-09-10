@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
+import '../localization/app_localizations.dart';
 import 'pair_finder_game.dart';
 
 class PairFinderTutorial extends StatefulWidget {
@@ -263,22 +264,22 @@ class _PairFinderTutorialState extends State<PairFinderTutorial> {
 
                     const SizedBox(width: 12),
 
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Pair Finder',
-                            style: TextStyle(
+                            context.loc.pairFinder,
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          SizedBox(height: 3),
+                          const SizedBox(height: 3),
                           Text(
-                            'Watch before you play',
-                            style: TextStyle(color: Colors.white, fontSize: 15),
+                            context.loc.watchBeforePlay,
+                            style: const TextStyle(color: Colors.white, fontSize: 15),
                           ),
                         ],
                       ),
@@ -306,9 +307,9 @@ class _PairFinderTutorialState extends State<PairFinderTutorial> {
                           color: Colors.white.withValues(alpha: 0.85),
                           borderRadius: BorderRadius.circular(18),
                         ),
-                        child: const Text(
-                          'How to Play',
-                          style: TextStyle(
+                        child: Text(
+                          context.loc.howToPlay,
+                          style: const TextStyle(
                             fontSize: 27,
                             fontWeight: FontWeight.bold,
                             color: Color(0xFF245C43),
@@ -327,12 +328,10 @@ class _PairFinderTutorialState extends State<PairFinderTutorial> {
                           color: Colors.white.withValues(alpha: 0.75),
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: const Text(
-                          'Watch this short tutorial. '
-                          'The game will start automatically '
-                          'when the video finishes.',
+                        child: Text(
+                          context.loc.tutorialVideoNote,
                           textAlign: TextAlign.center,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 17,
                             height: 1.4,
                             color: Color(0xFF555555),
@@ -459,23 +458,21 @@ class _PairFinderTutorialState extends State<PairFinderTutorial> {
                           borderRadius: BorderRadius.circular(22),
                           border: Border.all(color: const Color(0xFFB7D1BD)),
                         ),
-                        child: const Row(
+                        child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.touch_app_rounded,
                               color: Color(0xFF2E7D5B),
                               size: 38,
                             ),
 
-                            SizedBox(width: 12),
+                            const SizedBox(width: 12),
 
                             Expanded(
                               child: Text(
-                                'Remember: Tap two cards '
-                                'to find the matching food. '
-                                'Take your time and enjoy!',
-                                style: TextStyle(
+                                context.loc.elderlyPairTip,
+                                style: const TextStyle(
                                   fontSize: 16,
                                   height: 1.4,
                                   color: Color(0xFF3F4D43),
@@ -498,9 +495,9 @@ class _PairFinderTutorialState extends State<PairFinderTutorial> {
                         child: ElevatedButton.icon(
                           onPressed: _skipTutorial,
                           icon: const Icon(Icons.play_arrow_rounded, size: 30),
-                          label: const Text(
-                            'Start Pair Finder',
-                            style: TextStyle(
+                          label: Text(
+                            context.loc.startPairFinder,
+                            style: const TextStyle(
                               fontSize: 19,
                               fontWeight: FontWeight.bold,
                             ),
@@ -526,10 +523,10 @@ class _PairFinderTutorialState extends State<PairFinderTutorial> {
                           color: Colors.white.withValues(alpha: 0.75),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Text(
-                          'The game starts automatically after the tutorial.',
+                        child: Text(
+                          context.loc.gameStartsAuto,
                           textAlign: TextAlign.center,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 14,
                             color: Color(0xFF666666),
                           ),

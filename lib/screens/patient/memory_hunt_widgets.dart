@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../localization/app_localizations.dart';
 
 /// Shared model for memory object cards.
 class MemoryHuntItem {
@@ -57,7 +58,7 @@ class MemoryHuntHeader extends StatelessWidget {
         IconButton(
           icon: const Icon(Icons.volume_up, color: Colors.black87, size: 28),
           onPressed: onSpeaker,
-          tooltip: 'Speaker',
+          tooltip: context.loc.voiceOver,
         ),
       ],
     );
@@ -105,7 +106,7 @@ class MemoryHuntPill extends StatelessWidget {
             IconButton(
               icon: const Icon(Icons.volume_up, color: Colors.white, size: 26),
               onPressed: onSpeaker,
-              tooltip: 'Voice over',
+              tooltip: context.loc.voiceOver,
             ),
         ],
       ),
@@ -173,7 +174,9 @@ class MemoryHuntObjectCard extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                item.label,
+                context.loc.getItemLabel(item.id).startsWith('item_')
+                    ? item.label
+                    : context.loc.getItemLabel(item.id),
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -306,17 +309,20 @@ class MemoryHuntSpeakerButton extends StatelessWidget {
     return SizedBox(
       width: 56,
       height: 56,
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFFFB82E),
-          elevation: 2,
-          padding: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+      child: Tooltip(
+        message: context.loc.voiceOver,
+        child: ElevatedButton(
+          onPressed: onPressed,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFFFB82E),
+            elevation: 2,
+            padding: EdgeInsets.zero,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
           ),
+          child: const Icon(Icons.volume_up, color: Colors.white, size: 28),
         ),
-        child: const Icon(Icons.volume_up, color: Colors.white, size: 28),
       ),
     );
   }

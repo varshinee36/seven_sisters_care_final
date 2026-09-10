@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../services/app_launcher_service.dart';
 import '../../services/app_settings_service.dart';
+import '../../providers/language_provider.dart';
+import '../../services/language_service.dart';
+import '../../localization/app_localizations.dart';
 
 class PatientSettingsScreen extends StatefulWidget {
   const PatientSettingsScreen({super.key});
@@ -86,15 +90,26 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
     final settings = AppSettingsService.instance;
+    LanguageProvider? languageProvider;
+    try {
+      languageProvider = Provider.of<LanguageProvider?>(context, listen: true);
+    } catch (_) {
+      languageProvider = null;
+    }
+    final currentLangCode = languageProvider?.languageCode ??
+        LanguageService.instance.getSavedLanguage();
+    final loc = context.loc;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final cardBg = isDark ? const Color(0xFF242E2A) : Colors.white;
-    final containerBg = isDark ? const Color(0xFF1B2320) : const Color(0xFFF7FAF8);
+    final containerBg =
+        isDark ? const Color(0xFF1B2320) : const Color(0xFFF7FAF8);
     final textMain = isDark ? Colors.white : Colors.black87;
     final textMuted = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF141917) : const Color(0xFF2B2525),
+      backgroundColor:
+          isDark ? const Color(0xFF141917) : const Color(0xFF2B2525),
       body: SafeArea(
         child: Center(
           child: Container(
@@ -104,7 +119,8 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
                 : EdgeInsets.zero,
             decoration: BoxDecoration(
               color: containerBg,
-              borderRadius: BorderRadius.circular(screenWidth > 600 ? 30 : 0),
+              borderRadius:
+                  BorderRadius.circular(screenWidth > 600 ? 30 : 0),
             ),
             child: Column(
               children: [
@@ -124,7 +140,8 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
                             return const CircleAvatar(
                               radius: 25,
                               backgroundColor: Color(0xFF005F46),
-                              child: Icon(Icons.favorite, color: Colors.white),
+                              child: Icon(Icons.favorite,
+                                  color: Colors.white),
                             );
                           },
                         ),
@@ -132,7 +149,7 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          "Settings",
+                          loc.settings,
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
@@ -148,14 +165,15 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
                             size: 28),
                         onPressed: () {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("Voice-over: Patient Settings screen"),
-                              duration: Duration(seconds: 2),
-                              backgroundColor: Color(0xFF005F46),
+                            SnackBar(
+                              content: Text(
+                                  "${loc.voiceOver}: ${loc.settings}"),
+                              duration: const Duration(seconds: 2),
+                              backgroundColor: const Color(0xFF005F46),
                             ),
                           );
                         },
-                        tooltip: 'Voice over',
+                        tooltip: loc.voiceOver,
                       ),
                     ],
                   ),
@@ -163,7 +181,9 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
 
                 Divider(
                   height: 1,
-                  color: isDark ? const Color(0xFF2C3934) : const Color(0xFFCFEDE2),
+                  color: isDark
+                      ? const Color(0xFF2C3934)
+                      : const Color(0xFFCFEDE2),
                 ),
 
                 // Settings Body
@@ -173,8 +193,9 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Section 1: Theme
-                        _buildSectionHeader(Icons.palette_outlined, "Theme", isDark),
+                        // Section 1: Language (Offline Localization)
+                        _buildSectionHeader(
+                            Icons.language_rounded, loc.language, isDark),
                         const SizedBox(height: 10),
                         Container(
                           decoration: BoxDecoration(
@@ -191,8 +212,124 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
                           child: Column(
                             children: [
                               _buildRadioTile(
-                                title: "Light",
-                                subtitle: "Clean white background with dark text",
+                                title: loc.english,
+                                subtitle: "English language interface",
+                                value: "en",
+                                groupValue: currentLangCode,
+                                textColor: textMain,
+                                subtitleColor: textMuted,
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    if (languageProvider != null) {
+                                      languageProvider.setLanguage(val);
+                                    } else {
+                                      LanguageService.instance.saveLanguage(val);
+                                    }
+                                  }
+                                },
+                              ),
+                              Divider(
+                                height: 1,
+                                indent: 16,
+                                endIndent: 16,
+                                color: isDark
+                                    ? const Color(0xFF2C3934)
+                                    : Colors.grey.shade200,
+                              ),
+                              _buildRadioTile(
+                                title: loc.hindi,
+                                subtitle: "हिंदी भाषा इंटरफ़ेस",
+                                value: "hi",
+                                groupValue: currentLangCode,
+                                textColor: textMain,
+                                subtitleColor: textMuted,
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    if (languageProvider != null) {
+                                      languageProvider.setLanguage(val);
+                                    } else {
+                                      LanguageService.instance.saveLanguage(val);
+                                    }
+                                  }
+                                },
+                              ),
+                              Divider(
+                                height: 1,
+                                indent: 16,
+                                endIndent: 16,
+                                color: isDark
+                                    ? const Color(0xFF2C3934)
+                                    : Colors.grey.shade200,
+                              ),
+                              _buildRadioTile(
+                                title: loc.assamese,
+                                subtitle: "অসমীয়া ভাষা ইণ্টাৰফেচ",
+                                value: "as",
+                                groupValue: currentLangCode,
+                                textColor: textMain,
+                                subtitleColor: textMuted,
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    if (languageProvider != null) {
+                                      languageProvider.setLanguage(val);
+                                    } else {
+                                      LanguageService.instance.saveLanguage(val);
+                                    }
+                                  }
+                                },
+                              ),
+                              Divider(
+                                height: 1,
+                                indent: 16,
+                                endIndent: 16,
+                                color: isDark
+                                    ? const Color(0xFF2C3934)
+                                    : Colors.grey.shade200,
+                              ),
+                              _buildRadioTile(
+                                title: loc.bengali,
+                                subtitle: "বাংলা ভাষা ইন্টারফেস",
+                                value: "bn",
+                                groupValue: currentLangCode,
+                                textColor: textMain,
+                                subtitleColor: textMuted,
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    if (languageProvider != null) {
+                                      languageProvider.setLanguage(val);
+                                    } else {
+                                      LanguageService.instance.saveLanguage(val);
+                                    }
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 25),
+
+                        // Section 2: Theme
+                        _buildSectionHeader(
+                            Icons.palette_outlined, loc.theme, isDark),
+                        const SizedBox(height: 10),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: cardBg,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.04),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              _buildRadioTile(
+                                title: loc.light,
+                                subtitle: loc.lightDesc,
                                 value: "Light",
                                 groupValue: settings.themeName,
                                 textColor: textMain,
@@ -209,11 +346,13 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
                                 height: 1,
                                 indent: 16,
                                 endIndent: 16,
-                                color: isDark ? const Color(0xFF2C3934) : Colors.grey.shade200,
+                                color: isDark
+                                    ? const Color(0xFF2C3934)
+                                    : Colors.grey.shade200,
                               ),
                               _buildRadioTile(
-                                title: "Dark",
-                                subtitle: "Low-light dark contrast mode",
+                                title: loc.dark,
+                                subtitle: loc.darkDesc,
                                 value: "Dark",
                                 groupValue: settings.themeName,
                                 textColor: textMain,
@@ -230,11 +369,13 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
                                 height: 1,
                                 indent: 16,
                                 endIndent: 16,
-                                color: isDark ? const Color(0xFF2C3934) : Colors.grey.shade200,
+                                color: isDark
+                                    ? const Color(0xFF2C3934)
+                                    : Colors.grey.shade200,
                               ),
                               _buildRadioTile(
-                                title: "System",
-                                subtitle: "Follow device system preferences",
+                                title: loc.system,
+                                subtitle: loc.systemDesc,
                                 value: "System",
                                 groupValue: settings.themeName,
                                 textColor: textMain,
@@ -253,9 +394,9 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
 
                         const SizedBox(height: 25),
 
-                        // Section 2: Font Size
-                        _buildSectionHeader(
-                            Icons.format_size_rounded, "Font Size", isDark),
+                        // Section 3: Font Size
+                        _buildSectionHeader(Icons.format_size_rounded,
+                            loc.fontSize, isDark),
                         const SizedBox(height: 10),
                         Container(
                           decoration: BoxDecoration(
@@ -272,8 +413,8 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
                           child: Column(
                             children: [
                               _buildRadioTile(
-                                title: "Small",
-                                subtitle: "Standard compact text sizing",
+                                title: loc.small,
+                                subtitle: loc.smallDesc,
                                 value: "Small",
                                 groupValue: settings.fontSizeName,
                                 textColor: textMain,
@@ -290,11 +431,13 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
                                 height: 1,
                                 indent: 16,
                                 endIndent: 16,
-                                color: isDark ? const Color(0xFF2C3934) : Colors.grey.shade200,
+                                color: isDark
+                                    ? const Color(0xFF2C3934)
+                                    : Colors.grey.shade200,
                               ),
                               _buildRadioTile(
-                                title: "Medium (Default)",
-                                subtitle: "Balanced readability and comfort",
+                                title: loc.medium,
+                                subtitle: loc.mediumDesc,
                                 value: "Medium",
                                 groupValue: settings.fontSizeName,
                                 textColor: textMain,
@@ -311,11 +454,13 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
                                 height: 1,
                                 indent: 16,
                                 endIndent: 16,
-                                color: isDark ? const Color(0xFF2C3934) : Colors.grey.shade200,
+                                color: isDark
+                                    ? const Color(0xFF2C3934)
+                                    : Colors.grey.shade200,
                               ),
                               _buildRadioTile(
-                                title: "Large",
-                                subtitle: "High visibility large text for easy reading",
+                                title: loc.large,
+                                subtitle: loc.largeDesc,
                                 value: "Large",
                                 groupValue: settings.fontSizeName,
                                 textColor: textMain,
@@ -334,9 +479,9 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
 
                         const SizedBox(height: 25),
 
-                        // Section 3: Quick Access Apps
-                        _buildSectionHeader(
-                            Icons.apps_rounded, "Quick Access Apps", isDark),
+                        // Section 4: Quick Access Apps
+                        _buildSectionHeader(Icons.apps_rounded,
+                            loc.quickAccessApps, isDark),
                         const SizedBox(height: 10),
                         ListView.separated(
                           shrinkWrap: true,
@@ -352,7 +497,8 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
                               elevation: 1,
                               child: InkWell(
                                 borderRadius: BorderRadius.circular(14),
-                                onTap: () => _handleAppLaunch(app["name"] as String),
+                                onTap: () => _handleAppLaunch(
+                                    app["name"] as String),
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 16, vertical: 12),
@@ -383,7 +529,8 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
                                               app["name"] as String,
                                               style: TextStyle(
                                                 fontSize: 16,
-                                                fontWeight: FontWeight.w600,
+                                                fontWeight:
+                                                    FontWeight.w600,
                                                 color: textMain,
                                               ),
                                             ),
@@ -450,9 +597,9 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          const Text(
-                            "Back",
-                            style: TextStyle(
+                          Text(
+                            loc.back,
+                            style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
@@ -472,7 +619,8 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
   }
 
   Widget _buildSectionHeader(IconData icon, String title, bool isDark) {
-    final color = isDark ? const Color(0xFF74B49B) : const Color(0xFF005F46);
+    final color =
+        isDark ? const Color(0xFF74B49B) : const Color(0xFF005F46);
     return Row(
       children: [
         Icon(icon, color: color, size: 22),
@@ -504,7 +652,8 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
       onTap: () => onChanged(value),
       borderRadius: BorderRadius.circular(8),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
             Icon(

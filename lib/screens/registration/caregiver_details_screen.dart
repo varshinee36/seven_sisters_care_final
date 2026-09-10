@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../auth/login_screen.dart';
+import '../../localization/app_localizations.dart';
 
 class CaregiverDetailsScreen extends StatefulWidget {
   final String patientName;
@@ -49,14 +50,15 @@ class _CaregiverDetailsScreenState
   }
 
   Future<void> _handleSubmit() async {
+    final loc = AppLocalizations.of(context);
     final caregiverName = nameController.text.trim();
     final phone = phoneController.text.trim();
     final password = passwordController.text;
 
     if (caregiverName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please enter caregiver name"),
+        SnackBar(
+          content: Text(loc.pleaseEnterCaregiverName),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -65,8 +67,8 @@ class _CaregiverDetailsScreenState
 
     if (caregiverName.length < 3) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Name must contain at least 3 characters"),
+        SnackBar(
+          content: Text(loc.nameMinChars),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -75,8 +77,8 @@ class _CaregiverDetailsScreenState
 
     if (phone.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please enter phone number"),
+        SnackBar(
+          content: Text(loc.pleaseEnterPhone),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -85,8 +87,8 @@ class _CaregiverDetailsScreenState
 
     if (!RegExp(r'^[0-9]{10}$').hasMatch(phone)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please enter a valid 10 digit phone number"),
+        SnackBar(
+          content: Text(loc.validPhoneRequired),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -95,8 +97,8 @@ class _CaregiverDetailsScreenState
 
     if (password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please enter password"),
+        SnackBar(
+          content: Text(loc.pleaseEnterPassword),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -105,8 +107,8 @@ class _CaregiverDetailsScreenState
 
     if (password.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Password must be at least 6 characters"),
+        SnackBar(
+          content: Text(loc.passwordMinChars),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -132,7 +134,7 @@ class _CaregiverDetailsScreenState
           SnackBar(
             content: Text(userResult["detail"] ??
                 userResult["message"] ??
-                "User registration failed"),
+                loc.registrationFailed),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -157,9 +159,9 @@ class _CaregiverDetailsScreenState
       if (patientResult["message"] == "Patient registered successfully" ||
           patientResult["patient_id"] != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Registration successful! Please login."),
-            backgroundColor: Color(0xFF005F46),
+          SnackBar(
+            content: Text(loc.registrationSuccess),
+            backgroundColor: const Color(0xFF005F46),
           ),
         );
 
@@ -176,7 +178,7 @@ class _CaregiverDetailsScreenState
           SnackBar(
             content: Text(patientResult["detail"] ??
                 patientResult["message"] ??
-                "Patient registration failed"),
+                loc.registrationFailed),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -185,7 +187,7 @@ class _CaregiverDetailsScreenState
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Registration error: $e"),
+          content: Text("${loc.connectionError}: $e"),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -202,6 +204,7 @@ class _CaregiverDetailsScreenState
   Widget build(BuildContext context) {
     double screenWidth =
         MediaQuery.of(context).size.width;
+    final loc = context.loc;
 
     return Scaffold(
       backgroundColor: const Color(0xFF2B2525),
@@ -236,12 +239,13 @@ class _CaregiverDetailsScreenState
                   children: [
                     const SizedBox(height: 10),
 
-                    const Text(
-                      "Setup Profile",
-                      style: TextStyle(
+                    Text(
+                      loc.setupProfile,
+                      style: const TextStyle(
                         fontSize: 14,
                         fontWeight:
-                            FontWeight.w500,
+                            FontWeight.w600,
+                        color: Color(0xFF005F46),
                       ),
                     ),
 
@@ -283,9 +287,9 @@ class _CaregiverDetailsScreenState
                                       10),
                         ),
 
-                        child: const Text(
-                          "Caregiver Details",
-                          style: TextStyle(
+                        child: Text(
+                          loc.caregiverDetails,
+                          style: const TextStyle(
                             fontSize: 24,
                             fontWeight:
                                 FontWeight.bold,
@@ -351,11 +355,12 @@ class _CaregiverDetailsScreenState
 
                     const SizedBox(height: 30),
 
-                    const Text(
-                      "Caregiver Name",
-                      style: TextStyle(
+                    Text(
+                      loc.caregiverName,
+                      style: const TextStyle(
                         fontWeight:
                             FontWeight.w600,
+                        color: Color(0xFF005F46),
                       ),
                     ),
 
@@ -368,7 +373,7 @@ class _CaregiverDetailsScreenState
                       decoration:
                           InputDecoration(
                         hintText:
-                            "Enter Name",
+                            loc.enterName,
 
                         filled: true,
                         fillColor:
@@ -386,11 +391,12 @@ class _CaregiverDetailsScreenState
 
                     const SizedBox(height: 20),
 
-                    const Text(
-                      "Relationship To Patient",
-                      style: TextStyle(
+                    Text(
+                      loc.relationshipToPatient,
+                      style: const TextStyle(
                         fontWeight:
                             FontWeight.w600,
+                        color: Color(0xFF005F46),
                       ),
                     ),
 
@@ -416,22 +422,31 @@ class _CaregiverDetailsScreenState
                       ),
 
                       items: [
-                        "Son",
-                        "Daughter",
-                        "Grandson",
-                        "Granddaughter",
-                        "Spouse",
-                        "Other"
-                      ]
-                          .map(
-                            (item) =>
-                                DropdownMenuItem(
-                              value: item,
-                              child:
-                                  Text(item),
-                            ),
-                          )
-                          .toList(),
+                        DropdownMenuItem(
+                          value: "Son",
+                          child: Text(loc.relationshipSon),
+                        ),
+                        DropdownMenuItem(
+                          value: "Daughter",
+                          child: Text(loc.relationshipDaughter),
+                        ),
+                        DropdownMenuItem(
+                          value: "Grandson",
+                          child: Text(loc.relationshipGrandson),
+                        ),
+                        DropdownMenuItem(
+                          value: "Granddaughter",
+                          child: Text(loc.relationshipGranddaughter),
+                        ),
+                        DropdownMenuItem(
+                          value: "Spouse",
+                          child: Text(loc.relationshipSpouse),
+                        ),
+                        DropdownMenuItem(
+                          value: "Other",
+                          child: Text(loc.relationshipOther),
+                        ),
+                      ],
 
                       onChanged: (value) {
                         setState(() {
@@ -443,11 +458,12 @@ class _CaregiverDetailsScreenState
 
                     const SizedBox(height: 20),
 
-                    const Text(
-                      "Phone Number",
-                      style: TextStyle(
+                    Text(
+                      loc.phoneNumber,
+                      style: const TextStyle(
                         fontWeight:
                             FontWeight.w600,
+                        color: Color(0xFF005F46),
                       ),
                     ),
 
@@ -486,10 +502,11 @@ class _CaregiverDetailsScreenState
 
                     const SizedBox(height: 20),
 
-                    const Text(
-                      "Password",
-                      style: TextStyle(
+                    Text(
+                      loc.password,
+                      style: const TextStyle(
                         fontWeight: FontWeight.w600,
+                        color: Color(0xFF005F46),
                       ),
                     ),
 
@@ -499,7 +516,7 @@ class _CaregiverDetailsScreenState
                       controller: passwordController,
                       obscureText: hidePassword,
                       decoration: InputDecoration(
-                        hintText: "Enter Password",
+                        hintText: loc.enterPassword,
                         filled: true,
                         fillColor: Colors.white,
                         suffixIcon: IconButton(
@@ -542,9 +559,9 @@ class _CaregiverDetailsScreenState
                                   strokeWidth: 2.5,
                                 ),
                               )
-                            : const Text(
-                                "Submit",
-                                style: TextStyle(
+                            : Text(
+                                loc.submit,
+                                style: const TextStyle(
                                   fontSize: 20,
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../localization/app_localizations.dart';
 import 'memory_hunt_widgets.dart';
 
 /// Level configuration model for Memory Hunt.
@@ -19,6 +20,21 @@ class MemoryHuntLevelData {
   });
 
   int get targetCount => memorizeItems.length;
+
+  String getLocalizedHint(BuildContext context, int hintIndex) {
+    final locHint = context.loc.getLevelHint(levelNumber, hintIndex);
+    if (locHint.startsWith('hint_') || locHint.isEmpty) {
+      return (hintIndex < hints.length) ? hints[hintIndex] : '';
+    }
+    return locHint;
+  }
+
+  List<String> getLocalizedTargetLabels(BuildContext context) {
+    return memorizeItems.map((e) {
+      final locLabel = context.loc.getItemLabel(e.id);
+      return locLabel.startsWith('item_') ? e.label : locLabel;
+    }).toList();
+  }
 }
 
 /// Catalog of all memory items with asset path and fallback icons.

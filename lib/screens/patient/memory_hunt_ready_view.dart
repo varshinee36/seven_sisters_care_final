@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../localization/app_localizations.dart';
 import 'memory_hunt_widgets.dart';
 
 /// Screen 2 — Get Ready (breathing circle animation).
@@ -46,9 +47,9 @@ class _MemoryHuntReadyViewState extends State<MemoryHuntReadyView>
       children: [
         MemoryHuntHeader(onSpeaker: widget.onSpeaker),
         const SizedBox(height: 24),
-        const MemoryHuntPill(
-          text: 'Memory Hunt',
-          color: Color(0xFF7A97FF),
+        MemoryHuntPill(
+          text: context.loc.memoryHunt,
+          color: const Color(0xFF7A97FF),
         ),
         const Spacer(),
 
@@ -86,9 +87,9 @@ class _MemoryHuntReadyViewState extends State<MemoryHuntReadyView>
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
-              'Get Ready',
-              style: TextStyle(
+            Text(
+              context.loc.getReady,
+              style: const TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
                 color: Colors.black87,
@@ -98,7 +99,7 @@ class _MemoryHuntReadyViewState extends State<MemoryHuntReadyView>
             IconButton(
               icon: const Icon(Icons.volume_up, color: Colors.black87, size: 30),
               onPressed: widget.onSpeaker,
-              tooltip: 'Voice over',
+              tooltip: context.loc.voiceOver,
             ),
           ],
         ),

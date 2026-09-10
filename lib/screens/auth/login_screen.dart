@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../role/choose_role_screen.dart';
 import '../../services/api_service.dart';
 import '../registration/patient_registration_screen.dart';
+import '../../localization/app_localizations.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -28,13 +29,14 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleLogin() async {
+    final loc = AppLocalizations.of(context);
     final username = usernameController.text.trim();
     final password = passwordController.text;
 
     if (username.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please enter username"),
+        SnackBar(
+          content: Text(loc.pleaseEnterUsername),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -43,8 +45,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please enter password"),
+        SnackBar(
+          content: Text(loc.pleaseEnterPassword),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -66,7 +68,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (result["message"] == "Login successful") {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(result["message"] ?? "Login successful"),
+            content: Text(loc.loginSuccessful),
             backgroundColor: const Color(0xFF005F46),
           ),
         );
@@ -82,7 +84,7 @@ class _LoginScreenState extends State<LoginScreen> {
           SnackBar(
             content: Text(result["detail"] ??
                 result["message"] ??
-                "Login failed. Please check your credentials."),
+                loc.loginFailed),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -91,7 +93,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Connection error: $e"),
+          content: Text("${loc.connectionError}: $e"),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -107,6 +109,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
+    final loc = context.loc;
 
     return Scaffold(
       backgroundColor: const Color(0xFF2B2525),
@@ -136,9 +139,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     borderRadius:
                         BorderRadius.circular(12),
                   ),
-                  child: const Text(
-                    "Login",
-                    style: TextStyle(
+                  child: Text(
+                    loc.login,
+                    style: const TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF005F46),
@@ -148,12 +151,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 40),
 
-                const Align(
+                Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    "Username",
-                    style: TextStyle(
+                    loc.username,
+                    style: const TextStyle(
                       fontWeight: FontWeight.w600,
+                      color: Color(0xFF005F46),
                     ),
                   ),
                 ),
@@ -163,7 +167,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 TextField(
                   controller: usernameController,
                   decoration: InputDecoration(
-                    hintText: "Enter Username",
+                    hintText: loc.enterUsername,
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
@@ -175,12 +179,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 20),
 
-                const Align(
+                Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    "Password",
-                    style: TextStyle(
+                    loc.password,
+                    style: const TextStyle(
                       fontWeight: FontWeight.w600,
+                      color: Color(0xFF005F46),
                     ),
                   ),
                 ),
@@ -191,7 +196,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   controller: passwordController,
                   obscureText: hidePassword,
                   decoration: InputDecoration(
-                    hintText: "Enter Password",
+                    hintText: loc.enterPassword,
                     filled: true,
                     fillColor: Colors.white,
 
@@ -239,9 +244,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               strokeWidth: 2.5,
                             ),
                           )
-                        : const Text(
-                            "Login",
-                            style: TextStyle(
+                        : Text(
+                            loc.login,
+                            style: const TextStyle(
                               fontSize: 20,
                               color: Colors.white,
                             ),
@@ -255,8 +260,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   alignment: WrapAlignment.center,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    const Text(
-                      "Don't have an account?",
+                    Text(
+                      loc.dontHaveAccount,
+                      style: const TextStyle(
+                        color: Color(0xFF005F46),
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                     TextButton(
                       onPressed: () {
@@ -267,9 +276,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         );
                       },
-                      child: const Text(
-                        "Create Account",
-                        style: TextStyle(
+                      child: Text(
+                        loc.createAccount,
+                        style: const TextStyle(
                           color: Color(0xFF005F46),
                           fontWeight: FontWeight.bold,
                         ),

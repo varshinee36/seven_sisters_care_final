@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../localization/app_localizations.dart';
 import 'memory_hunt_answer_view.dart';
 import 'memory_hunt_data.dart';
 import 'memory_hunt_feedback_dialog.dart';
@@ -89,11 +90,14 @@ class _MemoryHuntScreenState extends State<MemoryHuntScreen> {
   String _getDefaultVoiceGuidance() {
     switch (_step) {
       case MemoryHuntStep.memorize:
-        return 'Please remember these ${_currentLevelData.targetCount} objects carefully.';
+        return context.loc.pleaseRememberObjectsCarefully(_currentLevelData.targetCount);
       case MemoryHuntStep.ready:
-        return 'Get ready! Take a deep breath.';
+        return context.loc.getReadyBreathe;
       case MemoryHuntStep.answer:
-        return 'Select the ${_currentLevelData.targetCount} objects you saw earlier. You have $_hintsRemaining hints remaining.';
+        return context.loc.selectObjectsGuidance(
+          _currentLevelData.targetCount,
+          _hintsRemaining,
+        );
     }
   }
 
@@ -135,25 +139,23 @@ class _MemoryHuntScreenState extends State<MemoryHuntScreen> {
         _hintsUsed++;
       });
       final hintIndex = _hintsUsed - 1;
-      final hintText = _currentLevelData.hints[hintIndex];
+      final hintText = _currentLevelData.getLocalizedHint(context, hintIndex);
 
-      playVoiceGuidance('Hint $_hintsUsed: $hintText');
+      playVoiceGuidance('${context.loc.hint} $_hintsUsed: $hintText');
 
       MemoryHuntFeedbackDialog.showHint(
         context,
-        title: 'Hint $_hintsUsed of 3',
+        title: context.loc.hintXOf3(_hintsUsed),
         message: hintText,
-        onSpeaker: () => playVoiceGuidance('Hint $_hintsUsed: $hintText'),
+        onSpeaker: () => playVoiceGuidance('${context.loc.hint} $_hintsUsed: $hintText'),
       );
     } else {
-      playVoiceGuidance('You have used all 3 hints for this level.');
+      playVoiceGuidance(context.loc.usedAll3Hints);
       MemoryHuntFeedbackDialog.showHint(
         context,
-        title: 'No Hints Remaining',
-        message:
-            'You have used all 3 hints for Level $_currentLevel. Try your best to select the matching objects!',
-        onSpeaker: () =>
-            playVoiceGuidance('You have used all 3 hints for this level.'),
+        title: context.loc.noHintsRemaining,
+        message: context.loc.allHintsUsedForLevel(_currentLevel),
+        onSpeaker: () => playVoiceGuidance(context.loc.usedAll3Hints),
       );
     }
   }
@@ -164,28 +166,26 @@ class _MemoryHuntScreenState extends State<MemoryHuntScreen> {
         _selectedIds.containsAll(targetIds);
 
     if (isCorrect) {
-      playVoiceGuidance('Well done! You remembered correctly.');
+      playVoiceGuidance(context.loc.wellDoneGuidance);
       MemoryHuntFeedbackDialog.showSuccess(
         context,
         message: _currentLevel < 5
-            ? 'You found all ${_currentLevelData.targetCount} objects for Level $_currentLevel!'
-            : 'You found all 10 objects for the final level!',
+            ? context.loc.foundAllLevelObjects(_currentLevelData.targetCount, _currentLevel)
+            : context.loc.foundAllFinalObjects,
         onSpeaker: () =>
-            playVoiceGuidance('Well done! You remembered correctly.'),
+            playVoiceGuidance(context.loc.wellDoneGuidance),
         onContinue: _advanceLevel,
       );
     } else {
       // Patient entered a wrong answer
       if (_hintsRemaining > 0) {
         // Prompt them to use a hint until the hint limit finishes
-        playVoiceGuidance(
-            'Try again! Use a hint to help you. You have $_hintsRemaining hints remaining.');
+        playVoiceGuidance(context.loc.tryAgainGuidance(_hintsRemaining));
 
         MemoryHuntFeedbackDialog.showTryAgainUseHint(
           context,
           hintsRemaining: _hintsRemaining,
-          onSpeaker: () => playVoiceGuidance(
-              'Try again! Use a hint to help you. You have $_hintsRemaining hints remaining.'),
+          onSpeaker: () => playVoiceGuidance(context.loc.tryAgainGuidance(_hintsRemaining)),
           onUseHint: () {
             _onHintPressed();
           },
@@ -195,17 +195,16 @@ class _MemoryHuntScreenState extends State<MemoryHuntScreen> {
         );
       } else {
         // All 3 hints have been used and patient entered wrong answer
-        final targetLabels =
-            _currentLevelData.memorizeItems.map((e) => e.label).toList();
+        final targetLabels = _currentLevelData.getLocalizedTargetLabels(context);
 
         playVoiceGuidance(
-            'All hints have finished. The correct objects were: ${targetLabels.join(', ')}');
+            context.loc.allHintsFinishedGuidance(targetLabels.join(', ')));
 
         MemoryHuntFeedbackDialog.showFailure(
           context,
           answers: targetLabels,
           onSpeaker: () => playVoiceGuidance(
-              'All hints finished. The correct objects were: ${targetLabels.join(', ')}'),
+              context.loc.allHintsFinishedGuidance(targetLabels.join(', '))),
           onRetry: () {
             setState(() {
               _selectedIds.clear();
@@ -231,13 +230,11 @@ class _MemoryHuntScreenState extends State<MemoryHuntScreen> {
       _startStepTimer();
     } else {
       // Reached completion of all 5 levels!
-      playVoiceGuidance(
-          'Congratulations! You completed all 5 levels of Memory Hunt!');
+      playVoiceGuidance(context.loc.allLevelsCompletedGuidance);
 
       MemoryHuntFeedbackDialog.showGameCompleted(
         context,
-        onSpeaker: () => playVoiceGuidance(
-            'Congratulations! You completed all 5 levels of Memory Hunt!'),
+        onSpeaker: () => playVoiceGuidance(context.loc.allLevelsCompletedGuidance),
         onPlayAgain: () {
           setState(() {
             _currentLevel = 1;
@@ -298,11 +295,11 @@ class _MemoryHuntScreenState extends State<MemoryHuntScreen> {
           level: _currentLevel,
           items: _currentLevelData.memorizeItems,
           onSpeaker: () => playVoiceGuidance(
-              'Please remember these ${_currentLevelData.targetCount} objects.'),
+              context.loc.pleaseRememberObjectsCarefully(_currentLevelData.targetCount)),
         );
       case MemoryHuntStep.ready:
         return MemoryHuntReadyView(
-          onSpeaker: () => playVoiceGuidance('Get ready! Take a deep breath.'),
+          onSpeaker: () => playVoiceGuidance(context.loc.getReadyBreathe),
         );
       case MemoryHuntStep.answer:
         return MemoryHuntAnswerView(
@@ -315,7 +312,7 @@ class _MemoryHuntScreenState extends State<MemoryHuntScreen> {
           onHint: _onHintPressed,
           onSubmit: _onSubmitPressed,
           onSpeaker: () => playVoiceGuidance(
-              'Select the ${_currentLevelData.targetCount} objects you saw earlier. You have $_hintsRemaining hints remaining.'),
+              context.loc.selectObjectsGuidance(_currentLevelData.targetCount, _hintsRemaining)),
         );
     }
   }

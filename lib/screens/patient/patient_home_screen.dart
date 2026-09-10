@@ -5,6 +5,7 @@ import 'activites_screen.dart';
 import 'patient_settings_screen.dart';
 import '../../services/family_contacts_service.dart';
 import '../../services/app_launcher_service.dart';
+import '../../localization/app_localizations.dart';
 
 class PatientHomeScreen extends StatefulWidget {
   const PatientHomeScreen({super.key});
@@ -15,6 +16,8 @@ class PatientHomeScreen extends StatefulWidget {
 
 class _PatientHomeScreenState extends State<PatientHomeScreen> {
   void _openRemindersSheet() {
+    final loc = context.loc;
+
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -31,14 +34,14 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.notifications_active_rounded,
+                      const Icon(Icons.notifications_active_rounded,
                           color: Color(0xFFD6BA5F), size: 28),
-                      SizedBox(width: 10),
+                      const SizedBox(width: 10),
                       Text(
-                        "Today's Reminders",
-                        style: TextStyle(
+                        loc.todaysReminders,
+                        style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF005F46),
@@ -55,35 +58,35 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
               const SizedBox(height: 16),
               _buildReminderItem(
                 time: "08:00 AM",
-                title: "Morning Medication & Warm Water",
+                title: loc.morningMedication,
                 icon: Icons.medication_rounded,
                 isCompleted: true,
               ),
               const SizedBox(height: 10),
               _buildReminderItem(
                 time: "10:30 AM",
-                title: "Gentle Garden Stroll",
+                title: loc.gardenStroll,
                 icon: Icons.nature_people_rounded,
                 isCompleted: true,
               ),
               const SizedBox(height: 10),
               _buildReminderItem(
                 time: "01:00 PM",
-                title: "Nutritious Lunch & Fruit",
+                title: loc.nutritiousLunch,
                 icon: Icons.restaurant_rounded,
                 isCompleted: false,
               ),
               const SizedBox(height: 10),
               _buildReminderItem(
                 time: "04:30 PM",
-                title: "Brain Health Memory Game",
+                title: loc.brainHealthMemory,
                 icon: Icons.psychology_rounded,
                 isCompleted: false,
               ),
               const SizedBox(height: 10),
               _buildReminderItem(
                 time: "08:00 PM",
-                title: "Evening Medicine & Family Call",
+                title: loc.eveningMedicine,
                 icon: Icons.nightlight_round,
                 isCompleted: false,
               ),
@@ -164,6 +167,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   }
 
   void _openFamilySheet() {
+    final loc = context.loc;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -186,14 +191,14 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Row(
+                      Row(
                         children: [
-                          Icon(Icons.diversity_3_rounded,
+                          const Icon(Icons.diversity_3_rounded,
                               color: Color(0xFF4C9866), size: 28),
-                          SizedBox(width: 10),
+                          const SizedBox(width: 10),
                           Text(
-                            "My Family & Care",
-                            style: TextStyle(
+                            loc.myFamilyAndCare,
+                            style: const TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
                               color: Color(0xFF005F46),
@@ -215,11 +220,12 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                         color: Colors.grey.shade100,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Center(
+                      child: Center(
                         child: Text(
-                          "No family contacts added yet.\nCaregiver can add contacts in Caregiver Dashboard.",
+                          loc.noFamilyContacts,
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.black54, fontSize: 13),
+                          style: const TextStyle(
+                              color: Colors.black54, fontSize: 13),
                         ),
                       ),
                     )
@@ -231,10 +237,12 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                       child: ListView.separated(
                         shrinkWrap: true,
                         itemCount: contacts.length,
-                        separatorBuilder: (context, index) => const SizedBox(height: 10),
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 10),
                         itemBuilder: (context, index) {
                           final contact = contacts[index];
-                          return _buildFamilyContact(contact: contact);
+                          return _buildFamilyContact(
+                              contact: contact, loc: loc);
                         },
                       ),
                     ),
@@ -248,7 +256,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     );
   }
 
-  Widget _buildFamilyContact({required FamilyContact contact}) {
+  Widget _buildFamilyContact(
+      {required FamilyContact contact, required AppLocalizations loc}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -293,12 +302,13 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
           IconButton(
             icon: const Icon(Icons.phone_rounded,
                 color: Color(0xFF005F46), size: 28),
-            tooltip: 'Call ${contact.name}',
+            tooltip: '${loc.call} ${contact.name}',
             onPressed: () async {
               ScaffoldMessenger.of(context).clearSnackBars();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text("Calling ${contact.displayName} (${contact.phoneNumber})..."),
+                  content: Text(
+                      "${loc.calling} ${contact.displayName} (${contact.phoneNumber})..."),
                   backgroundColor: const Color(0xFF005F46),
                   duration: const Duration(seconds: 2),
                 ),
@@ -312,6 +322,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   }
 
   void _openTalkToAssistantSheet() {
+    final loc = context.loc;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -321,7 +333,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
       backgroundColor: Colors.white,
       builder: (context) {
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          padding:
+              const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -334,9 +347,9 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              const Text(
-                "Voice Companion",
-                style: TextStyle(
+              Text(
+                loc.voiceCompanion,
+                style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF005F46),
@@ -344,16 +357,18 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                "I am listening. How can I assist you right now?",
+                loc.voiceListeningPrompt,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 15, color: Colors.grey.shade700),
+                style: TextStyle(
+                    fontSize: 15, color: Colors.grey.shade700),
               ),
               const SizedBox(height: 30),
               Container(
                 width: 90,
                 height: 90,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF19D3F3).withValues(alpha: 0.2),
+                  color:
+                      const Color(0xFF19D3F3).withValues(alpha: 0.2),
                   shape: BoxShape.circle,
                 ),
                 child: Center(
@@ -378,10 +393,10 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                 runSpacing: 8,
                 alignment: WrapAlignment.center,
                 children: [
-                  _buildVoiceChip("Read today's news"),
-                  _buildVoiceChip("Play soothing music"),
-                  _buildVoiceChip("Check my medications"),
-                  _buildVoiceChip("Call my family"),
+                  _buildVoiceChip(loc.voiceNews, loc),
+                  _buildVoiceChip(loc.voiceMusic, loc),
+                  _buildVoiceChip(loc.voiceMedications, loc),
+                  _buildVoiceChip(loc.voiceCallFamily, loc),
                 ],
               ),
               const SizedBox(height: 25),
@@ -393,7 +408,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(15)),
                   ),
-                  child: const Text("Done"),
+                  child: Text(loc.done),
                 ),
               ),
             ],
@@ -403,7 +418,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     );
   }
 
-  Widget _buildVoiceChip(String text) {
+  Widget _buildVoiceChip(String text, AppLocalizations loc) {
     return ActionChip(
       label: Text(text),
       backgroundColor: const Color(0xFFF0F7F4),
@@ -411,7 +426,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
       onPressed: () {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Processing: \"$text\""),
+            content: Text("${loc.processing}: \"$text\""),
             backgroundColor: const Color(0xFF005F46),
           ),
         );
@@ -422,6 +437,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   @override
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
+    final loc = context.loc;
 
     return Scaffold(
       backgroundColor: const Color(0xFF2B2525),
@@ -434,10 +450,12 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                 : EdgeInsets.zero,
             decoration: BoxDecoration(
               color: const Color(0xFFF7FAF8),
-              borderRadius: BorderRadius.circular(screenWidth > 600 ? 30 : 0),
+              borderRadius:
+                  BorderRadius.circular(screenWidth > 600 ? 30 : 0),
             ),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 24, vertical: 16),
               child: Column(
                 children: [
                   // Top Header: Logo + 11:30 AM / 70% Charge + Voice + Settings
@@ -460,11 +478,12 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      const Expanded(
+                      Expanded(
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment:
+                              CrossAxisAlignment.start,
                           children: [
-                            Text(
+                            const Text(
                               "11:30 AM",
                               style: TextStyle(
                                 fontSize: 26,
@@ -474,12 +493,14 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                             ),
                             Row(
                               children: [
-                                Icon(Icons.battery_charging_full_rounded,
-                                    size: 18, color: Colors.black87),
-                                SizedBox(width: 4),
+                                const Icon(
+                                    Icons.battery_charging_full_rounded,
+                                    size: 18,
+                                    color: Colors.black87),
+                                const SizedBox(width: 4),
                                 Text(
-                                  "70% Charge",
-                                  style: TextStyle(
+                                  "70% ${loc.charge}",
+                                  style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
                                     color: Colors.black87,
@@ -494,9 +515,16 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                         icon: const Icon(Icons.volume_up,
                             size: 28, color: Colors.black87),
                         onPressed: () {
-                          // TODO: Connect voice-over audio later.
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(loc.voiceOver),
+                              duration: const Duration(seconds: 1),
+                              backgroundColor:
+                                  const Color(0xFF005F46),
+                            ),
+                          );
                         },
-                        tooltip: 'Voice over',
+                        tooltip: loc.voiceOver,
                       ),
                       IconButton(
                         icon: const Icon(Icons.settings,
@@ -505,10 +533,12 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => const PatientSettingsScreen(),
+                              builder: (_) =>
+                                  const PatientSettingsScreen(),
                             ),
                           );
                         },
+                        tooltip: loc.settings,
                       ),
                     ],
                   ),
@@ -522,14 +552,15 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                       children: [
                         // 1. Games Card
                         _buildHomeCard(
-                          title: "Games",
+                          title: loc.games,
                           color: const Color(0xFF459B98),
                           icon: Icons.psychology_rounded,
                           onTap: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => const GamesScreen(),
+                                builder: (_) =>
+                                    const GamesScreen(),
                               ),
                             );
                           },
@@ -539,14 +570,15 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
 
                         // 2. Activities Card
                         _buildHomeCard(
-                          title: "Activities",
+                          title: loc.activities,
                           color: const Color(0xFFD64D6E),
                           icon: Icons.favorite_rounded,
                           onTap: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => const ActivitesScreen(),
+                                builder: (_) =>
+                                    const ActivitesScreen(),
                               ),
                             );
                           },
@@ -556,7 +588,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
 
                         // 3. Reminders Card
                         _buildHomeCard(
-                          title: "Remainders",
+                          title: loc.reminders,
                           color: const Color(0xFFD6BA5F),
                           icon: Icons.notifications_active_rounded,
                           onTap: _openRemindersSheet,
@@ -566,7 +598,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
 
                         // 4. Family Card
                         _buildHomeCard(
-                          title: "Family",
+                          title: loc.family,
                           color: const Color(0xFF4C9866),
                           icon: Icons.badge_rounded,
                           onTap: _openFamilySheet,
@@ -590,18 +622,19 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                           borderRadius: BorderRadius.circular(30),
                         ),
                       ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      child: Row(
+                        mainAxisAlignment:
+                            MainAxisAlignment.center,
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.mic_rounded,
                             color: Colors.white,
                             size: 26,
                           ),
-                          SizedBox(width: 10),
+                          const SizedBox(width: 10),
                           Text(
-                            "Talk to Assistant",
-                            style: TextStyle(
+                            loc.talkToAssistant,
+                            style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
@@ -628,6 +661,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     required IconData icon,
     required VoidCallback onTap,
   }) {
+    final loc = context.loc;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -636,7 +671,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
         child: Container(
           width: double.infinity,
           height: 100,
-          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+          padding: const EdgeInsets.symmetric(
+              horizontal: 22, vertical: 12),
           decoration: BoxDecoration(
             color: color,
             borderRadius: BorderRadius.circular(22),
@@ -662,12 +698,15 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                     child: Icon(icon, color: Colors.white, size: 36),
                   ),
                   const SizedBox(width: 22),
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                  Expanded(
+                    child: Text(
+                      title,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ],
@@ -681,7 +720,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text("Voice guide for $title"),
+                        content: Text("${loc.voiceGuideFor} $title"),
                         duration: const Duration(seconds: 1),
                         backgroundColor: color,
                       ),

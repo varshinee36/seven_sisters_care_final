@@ -1,13 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:provider/provider.dart';
 
+import 'localization/app_localizations.dart';
+import 'providers/language_provider.dart';
+import 'services/language_service.dart';
+import 'services/app_settings_service.dart';
 import 'screens/splash_screen.dart';
 
-import 'screens/games_screen.dart';
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final languageService = LanguageService.instance;
+  await languageService.init();
 
-import 'services/app_settings_service.dart';
-
-void main() {
-  runApp(const SevenSistersCare());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => LanguageProvider(languageService),
+      child: const SevenSistersCare(),
+    ),
+  );
 }
 
 class SevenSistersCare extends StatelessWidget {
@@ -21,10 +32,20 @@ class SevenSistersCare extends StatelessWidget {
       listenable: AppSettingsService.instance,
       builder: (context, _) {
         final settings = AppSettingsService.instance;
+        final languageProvider = context.watch<LanguageProvider>();
 
         return MaterialApp(
           title: 'Seven Sisters Care',
+          onGenerateTitle: (ctx) => AppLocalizations.of(ctx).appTitle,
           debugShowCheckedModeBanner: false,
+          locale: languageProvider.currentLocale,
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
           themeMode: settings.themeMode,
 
           theme: ThemeData(

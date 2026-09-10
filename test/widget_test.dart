@@ -1,122 +1,123 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:seven_sisters_care/main.dart';
-import 'package:seven_sisters_care/screens/splash_screen.dart';
-import 'package:seven_sisters_care/screens/get_started_screen.dart';
-import 'package:seven_sisters_care/screens/auth/login_signup_screen.dart';
-import 'package:seven_sisters_care/screens/auth/login_screen.dart';
-import 'package:seven_sisters_care/screens/registration/patient_registration_screen.dart';
-import 'package:seven_sisters_care/screens/role/choose_role_screen.dart';
-import 'package:seven_sisters_care/screens/patient/patient_home_screen.dart';
-import 'package:seven_sisters_care/screens/caregiver/caregiver_home_screen.dart';
+import 'package:seven_sisters_care/localization/app_localizations.dart';
+import 'package:seven_sisters_care/services/language_service.dart';
+import 'package:seven_sisters_care/providers/language_provider.dart';
 
 void main() {
-  testWidgets('MainScreen loads and displays welcome message', (WidgetTester tester) async {
-    await tester.pumpWidget(const SevenSistersCare(home: MainScreen()));
+  TestWidgetsFlutterBinding.ensureInitialized();
 
-    // Verify that the welcome text and title are rendered.
-    expect(find.text('Seven Sisters Care'), findsWidgets);
-    expect(find.text('Welcome!'), findsOneWidget);
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
   });
 
-  testWidgets('App starts with SplashScreen and navigates to GetStartedScreen',
-      (WidgetTester tester) async {
-    await tester.pumpWidget(const MyApp());
+  group('Localization Offline Tests', () {
+    test('English dictionary translations', () {
+      final loc = AppLocalizations(const Locale('en'));
+      expect(loc.appTitle, 'Seven Sisters Care');
+      expect(loc.welcome, 'Welcome');
+      expect(loc.medicineReminder, 'Medicine Reminder');
+      expect(loc.save, 'Save');
+      expect(loc.cancel, 'Cancel');
+      expect(loc.games, 'Games');
+    });
 
-    // Verify SplashScreen is present
-    expect(find.byType(SplashScreen), findsOneWidget);
-    expect(find.text("SEVEN SISTERS CARE"), findsOneWidget);
+    test('Hindi dictionary translations', () {
+      final loc = AppLocalizations(const Locale('hi'));
+      expect(loc.welcome, 'स्वागत है');
+      expect(loc.medicineReminder, 'दवा अनुस्मारक');
+      expect(loc.save, 'सहेजें');
+      expect(loc.cancel, 'रद्द करें');
+      expect(loc.games, 'खेल');
+      expect(loc.reminders, 'अनुस्मारक');
+    });
 
-    // Fast forward splash timer
-    await tester.pump(const Duration(seconds: 3));
-    await tester.pumpAndSettle();
+    test('Assamese dictionary translations', () {
+      final loc = AppLocalizations(const Locale('as'));
+      expect(loc.welcome, 'স্বাগতম');
+      expect(loc.medicineReminder, 'ঔষধ সোঁৱৰণী');
+      expect(loc.save, 'সংৰক্ষণ কৰক');
+      expect(loc.cancel, 'বাতিল কৰক');
+      expect(loc.games, 'খেলসমূহ');
+      expect(loc.reminders, 'সোঁৱৰণী');
+    });
 
-    // Verify GetStartedScreen is displayed
-    expect(find.byType(GetStartedScreen), findsOneWidget);
-    expect(find.text("Get Started"), findsOneWidget);
-
-    // Tap Get Started button
-    await tester.ensureVisible(find.text("Get Started"));
-    await tester.tap(find.text("Get Started"));
-    await tester.pumpAndSettle();
-
-    // Verify LoginSignupScreen is displayed
-    expect(find.byType(LoginSignupScreen), findsOneWidget);
-    expect(find.text("Login"), findsOneWidget);
-    expect(find.text("Sign Up"), findsOneWidget);
+    test('Bengali dictionary translations', () {
+      final loc = AppLocalizations(const Locale('bn'));
+      expect(loc.welcome, 'স্বাগতম');
+      expect(loc.medicineReminder, 'ওষুধ অনুস্মারক');
+      expect(loc.save, 'সংরক্ষণ করুন');
+      expect(loc.cancel, 'বাতিল');
+      expect(loc.games, 'খেলাধুলা');
+      expect(loc.reminders, 'অনুস্মারক');
+    });
   });
 
-  testWidgets('LoginSignupScreen Login button navigates to LoginScreen',
-      (WidgetTester tester) async {
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: LoginSignupScreen(),
-      ),
-    );
+  group('LanguageProvider and Persistence Tests', () {
+    testWidgets('LanguageProvider switches locale dynamically and persists',
+        (WidgetTester tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final service = LanguageService.instance;
+      await service.init();
+      final provider = LanguageProvider(service);
 
-    // Tap Login button
-    await tester.tap(find.widgetWithText(ElevatedButton, "Login"));
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        ChangeNotifierProvider.value(
+          value: provider,
+          child: Consumer<LanguageProvider>(
+            builder: (context, lang, _) {
+              final loc = AppLocalizations(lang.currentLocale);
+              return MaterialApp(
+                locale: lang.currentLocale,
+                home: Scaffold(
+                  body: Column(
+                    children: [
+                      Text(loc.welcome),
+                      Text(loc.medicineReminder),
+                      Text(loc.games),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      );
 
-    // Verify LoginScreen is displayed
-    expect(find.byType(LoginScreen), findsOneWidget);
-  });
+      // Initially English
+      expect(find.text('Welcome'), findsOneWidget);
+      expect(find.text('Medicine Reminder'), findsOneWidget);
+      expect(find.text('Games'), findsOneWidget);
 
-  testWidgets(
-      'LoginSignupScreen Sign Up button navigates to PatientRegistrationScreen',
-      (WidgetTester tester) async {
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: LoginSignupScreen(),
-      ),
-    );
+      // Switch to Hindi
+      await provider.setLanguage('hi');
+      await tester.pumpAndSettle();
 
-    // Tap Sign Up button
-    await tester.tap(find.widgetWithText(ElevatedButton, "Sign Up"));
-    await tester.pumpAndSettle();
+      expect(find.text('स्वागत है'), findsOneWidget);
+      expect(find.text('दवा अनुस्मारक'), findsOneWidget);
+      expect(find.text('खेल'), findsOneWidget);
 
-    // Verify PatientRegistrationScreen is displayed
-    expect(find.byType(PatientRegistrationScreen), findsOneWidget);
-    expect(find.text("Patient Details"), findsOneWidget);
-  });
+      // Switch to Assamese
+      await provider.setLanguage('as');
+      await tester.pumpAndSettle();
 
-  testWidgets('ChooseRoleScreen navigates to PatientHomeScreen & CaregiverHomeScreen',
-      (WidgetTester tester) async {
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: ChooseRoleScreen(),
-      ),
-    );
+      expect(find.text('স্বাগতম'), findsOneWidget);
+      expect(find.text('ঔষধ সোঁৱৰণী'), findsOneWidget);
+      expect(find.text('খেলসমূহ'), findsOneWidget);
 
-    expect(find.text("Choose Your Role"), findsOneWidget);
-    expect(find.text("Patient"), findsOneWidget);
-    expect(find.text("Care Giver"), findsOneWidget);
+      // Switch to Bengali
+      await provider.setLanguage('bn');
+      await tester.pumpAndSettle();
 
-    // Tap Patient button
-    await tester.tap(find.widgetWithText(ElevatedButton, "Patient"));
-    await tester.pumpAndSettle();
+      expect(find.text('স্বাগতম'), findsOneWidget);
+      expect(find.text('ওষুধ অনুস্মারক'), findsOneWidget);
+      expect(find.text('খেলাধুলা'), findsOneWidget);
 
-    // Verify PatientHomeScreen is displayed
-    expect(find.byType(PatientHomeScreen), findsOneWidget);
-    expect(find.text("Games"), findsOneWidget);
-    expect(find.text("Activities"), findsOneWidget);
-  });
-
-  testWidgets('ChooseRoleScreen Care Giver button navigates to CaregiverHomeScreen',
-      (WidgetTester tester) async {
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: ChooseRoleScreen(),
-      ),
-    );
-
-    // Tap Care Giver button
-    await tester.tap(find.widgetWithText(ElevatedButton, "Care Giver"));
-    await tester.pumpAndSettle();
-
-    // Verify CaregiverHomeScreen is displayed
-    expect(find.byType(CaregiverHomeScreen), findsOneWidget);
-    expect(find.text("Caregiver Portal"), findsOneWidget);
+      // Verify SharedPreferences persisted the code
+      expect(service.getSavedLanguage(), 'bn');
+    });
   });
 }

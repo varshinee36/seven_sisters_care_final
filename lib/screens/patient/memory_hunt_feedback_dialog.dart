@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../localization/app_localizations.dart';
+
 /// Feedback, hint, and answer dialogs for Memory Hunt.
 class MemoryHuntFeedbackDialog {
   MemoryHuntFeedbackDialog._();
@@ -18,7 +20,7 @@ class MemoryHuntFeedbackDialog {
       illustration: Icons.lightbulb_rounded,
       accent: const Color(0xFFFFB82E),
       onSpeaker: onSpeaker,
-      buttonText: 'Got It',
+      buttonText: context.loc.gotIt,
     );
   }
 
@@ -56,7 +58,7 @@ class MemoryHuntFeedbackDialog {
                       size: 30,
                     ),
                     onPressed: onSpeaker,
-                    tooltip: 'Voice over',
+                    tooltip: context.loc.voiceOver,
                   ),
                 ],
               ),
@@ -75,10 +77,10 @@ class MemoryHuntFeedbackDialog {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Try Again!',
+              Text(
+                context.loc.tryAgainExclamation,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.bold,
                   color: accent,
@@ -86,7 +88,7 @@ class MemoryHuntFeedbackDialog {
               ),
               const SizedBox(height: 12),
               Text(
-                'That is not quite right.\nYou have $hintsRemaining hint${hintsRemaining == 1 ? '' : 's'} remaining.\nUse a hint to help you!',
+                context.loc.tryAgainPrompt(hintsRemaining),
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 18,
@@ -127,7 +129,7 @@ class MemoryHuntFeedbackDialog {
                           child: FittedBox(
                             fit: BoxFit.scaleDown,
                             child: Text(
-                              'Use Hint ($hintsRemaining left)',
+                              context.loc.useHintWithRemaining(hintsRemaining),
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -155,9 +157,9 @@ class MemoryHuntFeedbackDialog {
                         borderRadius: BorderRadius.circular(30),
                       ),
                     ),
-                    child: const Text(
-                      'Try Again',
-                      style: TextStyle(
+                    child: Text(
+                      context.loc.tryAgain,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF7A97FF),
@@ -181,11 +183,12 @@ class MemoryHuntFeedbackDialog {
   }) {
     return _showBase(
       context,
-      title: 'Answers',
-      message: 'The correct objects were:\n${answers.join('\n')}',
+      title: context.loc.answers,
+      message: '${context.loc.correctObjectsWere}\n${answers.join('\n')}',
       illustration: Icons.checklist_rounded,
       accent: const Color(0xFF7A97FF),
       onSpeaker: onSpeaker,
+      buttonText: context.loc.gotIt,
     );
   }
 
@@ -198,14 +201,14 @@ class MemoryHuntFeedbackDialog {
   }) {
     return _showBase(
       context,
-      title: 'Well Done!',
-      message: message ?? 'You remembered correctly!',
+      title: context.loc.wellDoneExclamation,
+      message: message ?? context.loc.youRememberedCorrectly,
       illustration: Icons.emoji_emotions_rounded,
       accent: const Color(0xFF4CAF50),
       onContinue: onContinue,
       onSpeaker: onSpeaker,
       largeIllustration: true,
-      buttonText: 'Next Level',
+      buttonText: context.loc.nextLevel,
     );
   }
 
@@ -219,7 +222,7 @@ class MemoryHuntFeedbackDialog {
   }) {
     const accent = Color(0xFFEA247F);
     final answersText = (answers != null && answers.isNotEmpty)
-        ? '\nThe correct objects were:\n${answers.join(', ')}'
+        ? '\n${context.loc.correctObjectsWere}\n${answers.join(', ')}'
         : '';
 
     return showDialog(
@@ -240,7 +243,7 @@ class MemoryHuntFeedbackDialog {
                   IconButton(
                     icon: const Icon(Icons.volume_up, color: accent, size: 30),
                     onPressed: onSpeaker,
-                    tooltip: 'Voice over',
+                    tooltip: context.loc.voiceOver,
                   ),
                 ],
               ),
@@ -258,10 +261,10 @@ class MemoryHuntFeedbackDialog {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Good Try!',
+              Text(
+                context.loc.goodTryExclamation,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.bold,
                   color: accent,
@@ -269,7 +272,7 @@ class MemoryHuntFeedbackDialog {
               ),
               const SizedBox(height: 10),
               Text(
-                'All 3 hints have finished for this level.$answersText',
+                '${context.loc.allHintsFinishedForLevel}$answersText',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 17,
@@ -300,9 +303,9 @@ class MemoryHuntFeedbackDialog {
                           borderRadius: BorderRadius.circular(30),
                         ),
                       ),
-                      child: const Text(
-                        'Retry Level',
-                        style: TextStyle(
+                      child: Text(
+                        context.loc.retryLevel,
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
@@ -326,9 +329,9 @@ class MemoryHuntFeedbackDialog {
                         borderRadius: BorderRadius.circular(30),
                       ),
                     ),
-                    child: const Text(
-                      'Continue',
-                      style: TextStyle(
+                    child: Text(
+                      context.loc.continueText,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
@@ -371,7 +374,7 @@ class MemoryHuntFeedbackDialog {
                   IconButton(
                     icon: const Icon(Icons.volume_up, color: accent, size: 30),
                     onPressed: onSpeaker,
-                    tooltip: 'Voice over',
+                    tooltip: context.loc.voiceOver,
                   ),
                 ],
               ),
@@ -389,20 +392,20 @@ class MemoryHuntFeedbackDialog {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Congratulations!',
+              Text(
+                context.loc.congratulationsExclamation,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.bold,
                   color: accent,
                 ),
               ),
               const SizedBox(height: 10),
-              const Text(
-                'You completed all 5 levels of Memory Hunt!\nYour memory is sharp and strong.',
+              Text(
+                context.loc.allLevelsCompleted,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 18,
                   height: 1.4,
                   color: Colors.black87,
@@ -430,9 +433,9 @@ class MemoryHuntFeedbackDialog {
                         borderRadius: BorderRadius.circular(30),
                       ),
                     ),
-                    child: const Text(
-                      'Play Again',
-                      style: TextStyle(
+                    child: Text(
+                      context.loc.playAgain,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
@@ -455,9 +458,9 @@ class MemoryHuntFeedbackDialog {
                         borderRadius: BorderRadius.circular(30),
                       ),
                     ),
-                    child: const Text(
-                      'Back to Games',
-                      style: TextStyle(
+                    child: Text(
+                      context.loc.backToGames,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF7A97FF),
@@ -482,7 +485,7 @@ class MemoryHuntFeedbackDialog {
     VoidCallback? onContinue,
     VoidCallback? onSpeaker,
     bool largeIllustration = false,
-    String buttonText = 'Continue',
+    String? buttonText,
   }) {
     return showDialog(
       context: context,
@@ -502,7 +505,7 @@ class MemoryHuntFeedbackDialog {
                   IconButton(
                     icon: Icon(Icons.volume_up, color: accent, size: 28),
                     onPressed: onSpeaker,
-                    tooltip: 'Voice over',
+                    tooltip: context.loc.voiceOver,
                   ),
                 ],
               ),
@@ -560,7 +563,7 @@ class MemoryHuntFeedbackDialog {
                   ),
                 ),
                 child: Text(
-                  buttonText,
+                  buttonText ?? context.loc.continueText,
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,

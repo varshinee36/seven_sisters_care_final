@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../role/choose_role_screen.dart';
+import '../../localization/app_localizations.dart';
 
 class CreateAccountScreen extends StatefulWidget {
   const CreateAccountScreen({super.key});
@@ -24,7 +25,17 @@ class _CreateAccountScreenState
   bool hideConfirmPassword = true;
 
   @override
+  void dispose() {
+    usernameController.dispose();
+    passwordController.dispose();
+    confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final loc = context.loc;
+
     return Scaffold(
       backgroundColor: const Color(0xFF2B2525),
 
@@ -58,9 +69,9 @@ class _CreateAccountScreenState
                         borderRadius:
                             BorderRadius.circular(10),
                       ),
-                      child: const Text(
-                        "Create Account",
-                        style: TextStyle(
+                      child: Text(
+                        loc.createAccount,
+                        style: const TextStyle(
                           fontSize: 24,
                           fontWeight:
                               FontWeight.bold,
@@ -73,11 +84,12 @@ class _CreateAccountScreenState
 
                   const SizedBox(height: 35),
 
-                  const Text(
-                    "Username",
-                    style: TextStyle(
+                  Text(
+                    loc.username,
+                    style: const TextStyle(
                       fontWeight:
                           FontWeight.w600,
+                      color: Color(0xFF005F46),
                     ),
                   ),
 
@@ -88,7 +100,7 @@ class _CreateAccountScreenState
                         usernameController,
                     decoration: InputDecoration(
                       hintText:
-                          "Enter Username",
+                          loc.enterUsername,
                       filled: true,
                       fillColor: Colors.white,
                       border:
@@ -102,11 +114,12 @@ class _CreateAccountScreenState
 
                   const SizedBox(height: 20),
 
-                  const Text(
-                    "Password",
-                    style: TextStyle(
+                  Text(
+                    loc.password,
+                    style: const TextStyle(
                       fontWeight:
                           FontWeight.w600,
+                      color: Color(0xFF005F46),
                     ),
                   ),
 
@@ -118,7 +131,7 @@ class _CreateAccountScreenState
                     obscureText: hidePassword,
                     decoration: InputDecoration(
                       hintText:
-                          "Enter Password",
+                          loc.enterPassword,
                       filled: true,
                       fillColor: Colors.white,
                       border:
@@ -148,11 +161,12 @@ class _CreateAccountScreenState
 
                   const SizedBox(height: 20),
 
-                  const Text(
-                    "Confirm Password",
-                    style: TextStyle(
+                  Text(
+                    loc.confirmPassword,
+                    style: const TextStyle(
                       fontWeight:
                           FontWeight.w600,
+                      color: Color(0xFF005F46),
                     ),
                   ),
 
@@ -165,7 +179,7 @@ class _CreateAccountScreenState
                         hideConfirmPassword,
                     decoration: InputDecoration(
                       hintText:
-                          "Confirm Password",
+                          loc.confirmPassword,
                       filled: true,
                       fillColor: Colors.white,
                       border:
@@ -207,10 +221,11 @@ class _CreateAccountScreenState
                           ScaffoldMessenger.of(
                                   context)
                               .showSnackBar(
-                            const SnackBar(
+                            SnackBar(
                               content: Text(
-                                "Please enter username",
+                                loc.pleaseEnterUsername,
                               ),
+                              backgroundColor: Colors.redAccent,
                             ),
                           );
                           return;
@@ -224,10 +239,11 @@ class _CreateAccountScreenState
                           ScaffoldMessenger.of(
                                   context)
                               .showSnackBar(
-                            const SnackBar(
+                            SnackBar(
                               content: Text(
-                                "Username must be at least 4 characters",
+                                loc.nameMinChars,
                               ),
+                              backgroundColor: Colors.redAccent,
                             ),
                           );
                           return;
@@ -239,10 +255,11 @@ class _CreateAccountScreenState
                           ScaffoldMessenger.of(
                                   context)
                               .showSnackBar(
-                            const SnackBar(
+                            SnackBar(
                               content: Text(
-                                "Please enter password",
+                                loc.pleaseEnterPassword,
                               ),
+                              backgroundColor: Colors.redAccent,
                             ),
                           );
                           return;
@@ -255,10 +272,11 @@ class _CreateAccountScreenState
                           ScaffoldMessenger.of(
                                   context)
                               .showSnackBar(
-                            const SnackBar(
+                            SnackBar(
                               content: Text(
-                                "Password must be at least 6 characters",
+                                loc.passwordMinChars,
                               ),
+                              backgroundColor: Colors.redAccent,
                             ),
                           );
                           return;
@@ -270,10 +288,11 @@ class _CreateAccountScreenState
                           ScaffoldMessenger.of(
                                   context)
                               .showSnackBar(
-                            const SnackBar(
+                            SnackBar(
                               content: Text(
-                                "Please confirm password",
+                                loc.confirmPassword,
                               ),
+                              backgroundColor: Colors.redAccent,
                             ),
                           );
                           return;
@@ -286,10 +305,11 @@ class _CreateAccountScreenState
                           ScaffoldMessenger.of(
                                   context)
                               .showSnackBar(
-                            const SnackBar(
+                            SnackBar(
                               content: Text(
-                                "Passwords do not match",
+                                loc.passwordsDoNotMatch,
                               ),
+                              backgroundColor: Colors.redAccent,
                             ),
                           );
                           return;
@@ -318,9 +338,9 @@ class _CreateAccountScreenState
                         ),
                       ),
 
-                      child: const Text(
-                        "Create Account",
-                        style: TextStyle(
+                      child: Text(
+                        loc.createAccount,
+                        style: const TextStyle(
                           fontSize: 20,
                           color: Colors.white,
                         ),

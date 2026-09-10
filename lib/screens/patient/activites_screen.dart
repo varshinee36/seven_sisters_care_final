@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../localization/app_localizations.dart';
 
 class ActivitesScreen extends StatefulWidget {
   const ActivitesScreen({super.key});
@@ -50,14 +51,16 @@ class _ActivitesScreenState extends State<ActivitesScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Close", style: TextStyle(color: Colors.grey)),
+            child: Text(context.loc.close,
+                style: const TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text("$title Session Started!"),
+                  content:
+                      Text("$title ${context.loc.sessionStarted}"),
                   backgroundColor: color,
                 ),
               );
@@ -67,8 +70,8 @@ class _ActivitesScreenState extends State<ActivitesScreen> {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text("Begin Activity",
-                style: TextStyle(color: Colors.white)),
+            child: Text(context.loc.beginActivity,
+                style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -129,9 +132,9 @@ class _ActivitesScreenState extends State<ActivitesScreen> {
                             size: 32, color: Colors.black87),
                         onPressed: () {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("Voice instructions: Select an activity to begin therapy."),
-                              backgroundColor: Color(0xFF005F46),
+                            SnackBar(
+                              content: Text(context.loc.activitySelectVoice),
+                              backgroundColor: const Color(0xFF005F46),
                             ),
                           );
                         },
@@ -144,10 +147,10 @@ class _ActivitesScreenState extends State<ActivitesScreen> {
                   // Title: Activities + Voice over
                   Row(
                     children: [
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          "Activities",
-                          style: TextStyle(
+                          context.loc.activities,
+                          style: const TextStyle(
                             fontSize: 26,
                             fontWeight: FontWeight.bold,
                             color: Color(0xFF005F46),
@@ -160,7 +163,7 @@ class _ActivitesScreenState extends State<ActivitesScreen> {
                         onPressed: () {
                           // TODO: Connect voice-over audio later.
                         },
-                        tooltip: 'Voice over',
+                        tooltip: context.loc.voiceOver,
                       ),
                     ],
                   ),
@@ -174,13 +177,13 @@ class _ActivitesScreenState extends State<ActivitesScreen> {
                       children: [
                         // Card 1: Reading
                         _buildActivityCard(
-                          title: "Reading",
+                          title: context.loc.reading,
                           color: const Color(0xFFD4B75B),
                           assetPath: "assets/images/reading.jpg",
                           fallbackIcon: Icons.menu_book_rounded,
                           onTap: () => _openActivityDialog(
-                            "Reading & Recall",
-                            "Enjoy short, soothing cultural stories and answer gentle recall questions.",
+                            context.loc.readingRecall,
+                            context.loc.readingRecallDesc,
                             const Color(0xFFD4B75B),
                             "assets/images/r_eading.jpg",
                           ),
@@ -190,13 +193,13 @@ class _ActivitesScreenState extends State<ActivitesScreen> {
 
                         // Card 2: Family Picture
                         _buildActivityCard(
-                          title: "Family\nPicture",
+                          title: context.loc.familyPicture,
                           color: const Color(0xFF689E89),
                           assetPath: "assets/images/familypicture.jpg",
                           fallbackIcon: Icons.photo_library_rounded,
                           onTap: () => _openActivityDialog(
-                            "Family Picture Recognition",
-                            "Look at fond family albums, recall cherished memories, and reconnect with beloved faces.",
+                            context.loc.familyPictureRecognition,
+                            context.loc.familyPictureRecognitionDesc,
                             const Color(0xFF689E89),
                             "assets/images/familyrecognition.jpg",
                           ),
@@ -206,13 +209,13 @@ class _ActivitesScreenState extends State<ActivitesScreen> {
 
                         // Card 3: Music
                         _buildActivityCard(
-                          title: "Music",
+                          title: context.loc.music,
                           color: const Color(0xFFD0456E),
                           assetPath: "assets/images/music.jpg",
                           fallbackIcon: Icons.music_note_rounded,
                           onTap: () => _openActivityDialog(
-                            "Music & Singing Memory",
-                            "Listen to familiar folk tunes and songs that stimulate nostalgic emotional memory.",
+                            context.loc.musicSingingMemory,
+                            context.loc.musicSingingMemoryDesc,
                             const Color(0xFFD0456E),
                             "assets/images/m_usic.jpg",
                           ),
@@ -222,13 +225,13 @@ class _ActivitesScreenState extends State<ActivitesScreen> {
 
                         // Card 4: Daily Routine Recall
                         _buildActivityCard(
-                          title: "Daily Routine\nRecall",
+                          title: context.loc.dailyRoutineRecall,
                           color: const Color(0xFF728DF5),
                           assetPath: "assets/images/dailyroutinerecall.jpg",
                           fallbackIcon: Icons.event_repeat_rounded,
                           onTap: () => _openActivityDialog(
-                            "Daily Routine Recall",
-                            "Reflect on daily milestones: breakfast, garden walks, medicine intake, and family calls.",
+                            context.loc.dailyRoutineRecallTitle,
+                            context.loc.dailyRoutineRecallDesc,
                             const Color(0xFF728DF5),
                             "assets/images/dailyroutinerecall.jpg",
                           ),
@@ -268,9 +271,9 @@ class _ActivitesScreenState extends State<ActivitesScreen> {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          const Text(
-                            "Back",
-                            style: TextStyle(
+                          Text(
+                            context.loc.back,
+                            style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
@@ -362,7 +365,7 @@ class _ActivitesScreenState extends State<ActivitesScreen> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                            "Voice description for ${title.replaceAll('\n', ' ')}"),
+                            "${context.loc.voiceGuideFor} ${title.replaceAll('\n', ' ')}"),
                         duration: const Duration(seconds: 1),
                         backgroundColor: color,
                       ),

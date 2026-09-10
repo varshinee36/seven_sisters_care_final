@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import '../localization/app_localizations.dart';
 
 class ContinuousFocusTutorial extends StatefulWidget {
   const ContinuousFocusTutorial({super.key});
@@ -91,10 +92,10 @@ class _ContinuousFocusTutorialState extends State<ContinuousFocusTutorial> {
                           ),
                         ),
                         const SizedBox(width: 14),
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'Attention',
-                            style: TextStyle(
+                            context.loc.attention,
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
@@ -120,11 +121,11 @@ class _ContinuousFocusTutorialState extends State<ContinuousFocusTutorial> {
                         icon: const Icon(Icons.arrow_back_rounded,
                             color: Colors.white, size: 28),
                       ),
-                      const Expanded(
+                      Expanded(
                         child: Center(
                           child: Text(
-                            'Continuous Focus',
-                            style: TextStyle(
+                            context.loc.objectFocus.replaceAll('\n', ' '),
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
@@ -138,9 +139,9 @@ class _ContinuousFocusTutorialState extends State<ContinuousFocusTutorial> {
 
                   const SizedBox(height: 8),
 
-                  const Text(
-                    'Watch how to play',
-                    style: TextStyle(
+                  Text(
+                    context.loc.watchBeforePlay,
+                    style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -226,10 +227,10 @@ class _ContinuousFocusTutorialState extends State<ContinuousFocusTutorial> {
                           // TODO: replace with navigation to the real Continuous Focus game
                           Navigator.pop(context);
                         },
-                        child: const Center(
+                        child: Center(
                           child: Text(
-                            'Start Game',
-                            style: TextStyle(
+                            context.loc.startPlaying,
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 20,
                               fontWeight: FontWeight.bold,

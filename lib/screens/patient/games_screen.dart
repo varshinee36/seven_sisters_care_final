@@ -4,6 +4,7 @@ import 'games_memory_screen.dart';
 import 'games_attention_screen.dart';
 import 'games_executiveplan_screen.dart';
 import 'games_perceptualmotor_screen.dart';
+import '../../localization/app_localizations.dart';
 
 class GamesScreen extends StatefulWidget {
   const GamesScreen({super.key});
@@ -55,11 +56,11 @@ class _GamesScreenState extends State<GamesScreen> {
                         ),
                       ),
                       const SizedBox(width: 16),
-                      const Expanded(
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
+                            const Text(
                               "11:30 AM",
                               style: TextStyle(
                                 fontSize: 26,
@@ -68,8 +69,8 @@ class _GamesScreenState extends State<GamesScreen> {
                               ),
                             ),
                             Text(
-                              "Games",
-                              style: TextStyle(
+                              context.loc.games,
+                              style: const TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.black,
@@ -84,7 +85,7 @@ class _GamesScreenState extends State<GamesScreen> {
                         onPressed: () {
                           // TODO: Connect voice-over audio later.
                         },
-                        tooltip: 'Voice over',
+                        tooltip: context.loc.voiceOver,
                       ),
                     ],
                   ),
@@ -98,7 +99,7 @@ class _GamesScreenState extends State<GamesScreen> {
                       children: [
                         // Card 1: Memory
                         _buildCategoryCard(
-                          title: "Memory",
+                          title: context.loc.memory,
                           color: const Color(0xFFE65555),
                           assetPath: "assets/images/memory.jpg",
                           fallbackIcon: Icons.menu_book_rounded,
@@ -116,7 +117,7 @@ class _GamesScreenState extends State<GamesScreen> {
 
                         // Card 2: Attention
                         _buildCategoryCard(
-                          title: "Attention",
+                          title: context.loc.attention,
                           color: const Color(0xFF75469F),
                           assetPath: "assets/images/attention.jpg",
                           fallbackIcon: Icons.extension_rounded,
@@ -134,7 +135,7 @@ class _GamesScreenState extends State<GamesScreen> {
 
                         // Card 3: Executive Planning
                         _buildCategoryCard(
-                          title: "Executive\nPlanning",
+                          title: context.loc.executivePlanning,
                           color: const Color(0xFF4866A8),
                           assetPath: "assets/images/executiveplanning.jpg",
                           fallbackIcon: Icons.assignment_rounded,
@@ -153,7 +154,7 @@ class _GamesScreenState extends State<GamesScreen> {
 
                         // Card 4: Perceptual Motor
                         _buildCategoryCard(
-                          title: "Perceptual\nMotor",
+                          title: context.loc.perceptualMotor,
                           color: const Color(0xFFF37A34),
                           assetPath: "assets/images/perceptualmotor.jpg",
                           fallbackIcon: Icons.category_rounded,
@@ -202,9 +203,9 @@ class _GamesScreenState extends State<GamesScreen> {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          const Text(
-                            "Back",
-                            style: TextStyle(
+                          Text(
+                            context.loc.back,
+                            style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,

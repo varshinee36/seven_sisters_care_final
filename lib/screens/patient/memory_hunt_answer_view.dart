@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../localization/app_localizations.dart';
 import 'memory_hunt_widgets.dart';
 
 /// Screen 3 — Answer selection (multi-select).
@@ -48,7 +49,7 @@ class MemoryHuntAnswerView extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Select the $targetCount objects you saw earlier (${selectedIds.length}/$targetCount)',
+                  context.loc.selectObjectsSawEarlier(targetCount, selectedIds.length),
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 17,
@@ -61,7 +62,7 @@ class MemoryHuntAnswerView extends StatelessWidget {
               IconButton(
                 icon: const Icon(Icons.volume_up, color: Colors.white, size: 26),
                 onPressed: onSpeaker,
-                tooltip: 'Voice over',
+                tooltip: context.loc.voiceOver,
               ),
             ],
           ),
@@ -99,7 +100,7 @@ class MemoryHuntAnswerView extends StatelessWidget {
           children: [
             Expanded(
               child: MemoryHuntYellowButton(
-                label: 'Hint ($hintsRemaining)',
+                label: context.loc.hintWithCount(hintsRemaining),
                 icon: Icons.lightbulb_outline,
                 onPressed: onHint,
               ),
@@ -107,7 +108,7 @@ class MemoryHuntAnswerView extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: MemoryHuntYellowButton(
-                label: 'Submit',
+                label: context.loc.submit,
                 icon: Icons.check_circle_outline,
                 onPressed: onSubmit,
               ),

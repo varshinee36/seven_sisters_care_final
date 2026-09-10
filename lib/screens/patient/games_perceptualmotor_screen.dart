@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../localization/app_localizations.dart';
 
 class GamesPerceptualMotorScreen extends StatefulWidget {
   const GamesPerceptualMotorScreen({super.key});
@@ -31,14 +32,14 @@ class _GamesPerceptualMotorScreenState
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Close", style: TextStyle(color: Colors.grey)),
+            child: Text(context.loc.close, style: const TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text("$title Session Started!"),
+                  content: Text("$title ${context.loc.sessionStarted}"),
                   backgroundColor: color,
                 ),
               );
@@ -48,8 +49,8 @@ class _GamesPerceptualMotorScreenState
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text("Start Playing",
-                style: TextStyle(color: Colors.white)),
+            child: Text(context.loc.startPlaying,
+                style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -112,7 +113,7 @@ class _GamesPerceptualMotorScreenState
                         onPressed: () {
                           // TODO: Connect voice-over audio later.
                         },
-                        tooltip: 'Voice over',
+                        tooltip: context.loc.voiceOver,
                       ),
                     ],
                   ),
@@ -126,10 +127,10 @@ class _GamesPerceptualMotorScreenState
                       color: const Color(0xFFF37A34),
                       borderRadius: BorderRadius.circular(30),
                     ),
-                    child: const Text(
-                      "Perceptual Motor",
+                    child: Text(
+                      context.loc.perceptualMotor,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
@@ -142,13 +143,13 @@ class _GamesPerceptualMotorScreenState
 
                   // Shape Matching
                   _buildGameCard(
-                    title: "Shape\nMatching",
+                    title: context.loc.shapeMatching,
                     color: const Color(0xFFFB8C00),
                     assetPath: "assets/images/shapematch.jpg",
                     fallbackIcon: Icons.interests_rounded,
                     onTap: () => _openGameDialog(
-                      "Shape Matching",
-                      "Match geometrical and natural shapes onto outlines to enhance spatial awareness and motor agility.",
+                      context.loc.shapeMatching,
+                      context.loc.shapeMatchingDesc,
                       const Color(0xFFFB8C00),
                     ),
                   ),
@@ -157,13 +158,13 @@ class _GamesPerceptualMotorScreenState
 
                   // Drag & Place
                   _buildGameCard(
-                    title: "Drag &\nPlace",
+                    title: context.loc.dragAndPlace,
                     color: const Color(0xFFF4511E),
                     assetPath: "assets/images/perceptualmotor.jpg",
                     fallbackIcon: Icons.touch_app_rounded,
                     onTap: () => _openGameDialog(
-                      "Drag & Place",
-                      "Practice hand-eye touch coordination by smoothly dragging items into designated baskets.",
+                      context.loc.dragAndPlace,
+                      context.loc.dragAndPlaceDesc,
                       const Color(0xFFF4511E),
                     ),
                   ),
@@ -198,9 +199,9 @@ class _GamesPerceptualMotorScreenState
                             ),
                           ),
                           const SizedBox(width: 12),
-                          const Text(
-                            "Back",
-                            style: TextStyle(
+                          Text(
+                            context.loc.back,
+                            style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
@@ -289,7 +290,7 @@ class _GamesPerceptualMotorScreenState
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text("Voice guidance for ${title.replaceAll('\n', ' ')}"),
+                        content: Text("${context.loc.voiceGuideFor} ${title.replaceAll('\n', ' ')}"),
                         duration: const Duration(seconds: 1),
                         backgroundColor: color,
                       ),

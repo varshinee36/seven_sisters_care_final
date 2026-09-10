@@ -1,10 +1,15 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:battery_plus/battery_plus.dart';
 
 import 'games_screen.dart';
 import 'activites_screen.dart';
 import 'patient_settings_screen.dart';
+import 'patient_reminders_screen.dart';
+import 'patient_reminder_alert_dialog.dart';
 import '../../services/family_contacts_service.dart';
 import '../../services/app_launcher_service.dart';
+import '../../services/reminder_service.dart';
 import '../../localization/app_localizations.dart';
 
 class PatientHomeScreen extends StatefulWidget {
@@ -15,154 +20,104 @@ class PatientHomeScreen extends StatefulWidget {
 }
 
 class _PatientHomeScreenState extends State<PatientHomeScreen> {
-  void _openRemindersSheet() {
-    final loc = context.loc;
+  final Battery _battery = Battery();
+  int? _batteryLevel;
+  Timer? _clockTimer;
+  Timer? _batteryTimer;
+  String _currentTimeString = '11:30 AM';
+  String? _openReminderDialogId;
 
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-      ),
-      backgroundColor: Colors.white,
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.notifications_active_rounded,
-                          color: Color(0xFFD6BA5F), size: 28),
-                      const SizedBox(width: 10),
-                      Text(
-                        loc.todaysReminders,
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF005F46),
-                        ),
-                      ),
-                    ],
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _buildReminderItem(
-                time: "08:00 AM",
-                title: loc.morningMedication,
-                icon: Icons.medication_rounded,
-                isCompleted: true,
-              ),
-              const SizedBox(height: 10),
-              _buildReminderItem(
-                time: "10:30 AM",
-                title: loc.gardenStroll,
-                icon: Icons.nature_people_rounded,
-                isCompleted: true,
-              ),
-              const SizedBox(height: 10),
-              _buildReminderItem(
-                time: "01:00 PM",
-                title: loc.nutritiousLunch,
-                icon: Icons.restaurant_rounded,
-                isCompleted: false,
-              ),
-              const SizedBox(height: 10),
-              _buildReminderItem(
-                time: "04:30 PM",
-                title: loc.brainHealthMemory,
-                icon: Icons.psychology_rounded,
-                isCompleted: false,
-              ),
-              const SizedBox(height: 10),
-              _buildReminderItem(
-                time: "08:00 PM",
-                title: loc.eveningMedicine,
-                icon: Icons.nightlight_round,
-                isCompleted: false,
-              ),
-              const SizedBox(height: 20),
-            ],
-          ),
-        );
-      },
-    );
+  @override
+  void initState() {
+    super.initState();
+    _currentTimeString = _formatCurrentTime();
+    _initBattery();
+
+    _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      final nowStr = _formatCurrentTime();
+      if (nowStr != _currentTimeString) {
+        setState(() {
+          _currentTimeString = nowStr;
+        });
+      }
+    });
+
+    _batteryTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      _fetchBattery();
+    });
+
+    ReminderService.instance.addListener(_onReminderStateChanged);
+    ReminderService.instance.startMonitoring();
   }
 
-  Widget _buildReminderItem({
-    required String time,
-    required String title,
-    required IconData icon,
-    required bool isCompleted,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: isCompleted
-            ? const Color(0xFF005F46).withValues(alpha: 0.08)
-            : const Color(0xFFD6BA5F).withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isCompleted
-              ? const Color(0xFF005F46).withValues(alpha: 0.3)
-              : const Color(0xFFD6BA5F).withValues(alpha: 0.4),
+  @override
+  void dispose() {
+    _clockTimer?.cancel();
+    _batteryTimer?.cancel();
+    ReminderService.instance.removeListener(_onReminderStateChanged);
+    ReminderService.instance.stopMonitoring();
+    super.dispose();
+  }
+
+  Future<void> _initBattery() async {
+    await _fetchBattery();
+  }
+
+  Future<void> _fetchBattery() async {
+    try {
+      final level = await _battery.batteryLevel;
+      if (mounted) {
+        setState(() {
+          _batteryLevel = level;
+        });
+      }
+    } catch (_) {}
+  }
+
+  String _formatCurrentTime() {
+    final now = TimeOfDay.now();
+    final hour = now.hourOfPeriod == 0 ? 12 : now.hourOfPeriod;
+    final minute = now.minute.toString().padLeft(2, '0');
+    final period = now.period == DayPeriod.am ? 'AM' : 'PM';
+    return '$hour:$minute $period';
+  }
+
+  void _onReminderStateChanged() {
+    final reminder = ReminderService.instance.activeAlert;
+    if (!mounted || reminder == null || _openReminderDialogId == reminder.id) {
+      return;
+    }
+
+    _openReminderDialogId = reminder.id;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showDialog<void>(
+        context: context,
+        useRootNavigator: true,
+        barrierDismissible: false,
+        builder: (dialogContext) => PatientReminderAlertDialog(
+          reminder: reminder,
+          onAcknowledge: () {
+            ReminderService.instance.acknowledgeReminder(reminder.id);
+            Navigator.of(dialogContext, rootNavigator: true).pop();
+          },
+          onSnooze: () {
+            ReminderService.instance.snoozeReminder(reminder.id);
+            Navigator.of(dialogContext, rootNavigator: true).pop();
+          },
         ),
-      ),
-      child: Row(
-        children: [
-          Icon(icon,
-              color: isCompleted
-                  ? const Color(0xFF005F46)
-                  : const Color(0xFF9E7C10),
-              size: 26),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  time,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: isCompleted
-                        ? const Color(0xFF005F46)
-                        : const Color(0xFF9E7C10),
-                  ),
-                ),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                    decoration: isCompleted
-                        ? TextDecoration.lineThrough
-                        : TextDecoration.none,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Icon(
-            isCompleted
-                ? Icons.check_circle_rounded
-                : Icons.radio_button_unchecked_rounded,
-            color: isCompleted
-                ? const Color(0xFF005F46)
-                : const Color(0xFF9E7C10),
-          ),
-        ],
-      ),
+      ).whenComplete(() {
+        _openReminderDialogId = null;
+        if (mounted) _onReminderStateChanged();
+      });
+    });
+  }
+
+  void _openRemindersSheet() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const PatientRemindersScreen()),
     );
   }
 
@@ -483,9 +438,9 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                           crossAxisAlignment:
                               CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              "11:30 AM",
-                              style: TextStyle(
+                            Text(
+                              _currentTimeString,
+                              style: const TextStyle(
                                 fontSize: 26,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.black87,
@@ -499,7 +454,9 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                                     color: Colors.black87),
                                 const SizedBox(width: 4),
                                 Text(
-                                  "70% ${loc.charge}",
+                                  _batteryLevel != null
+                                      ? "$_batteryLevel% ${loc.charge}"
+                                      : "70% ${loc.charge}",
                                   style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,

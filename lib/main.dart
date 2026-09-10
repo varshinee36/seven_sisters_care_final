@@ -7,6 +7,9 @@ import 'providers/language_provider.dart';
 import 'services/language_service.dart';
 import 'services/app_settings_service.dart';
 import 'screens/splash_screen.dart';
+import 'screens/pair_finder_game.dart';
+
+import 'screens/patient/patient_reminders_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -78,6 +81,10 @@ class SevenSistersCare extends StatelessWidget {
           },
 
           home: home ?? const SplashScreen(),
+          routes: {
+            '/patient_reminders': (context) => const PatientRemindersScreen(),
+            '/pair_finder': (context) => const PairFinderGame(),
+          },
         );
       },
     );

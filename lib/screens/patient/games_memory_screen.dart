@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../localization/app_localizations.dart';
+import '../pair_finder_game.dart';
 import '../pair_finder_tutorial.dart';
 import 'memory_hunt_screen.dart';
+
 
 class GamesMemoryScreen extends StatefulWidget {
   const GamesMemoryScreen({super.key});
@@ -56,13 +58,25 @@ class _GamesMemoryScreenState extends State<GamesMemoryScreen> {
             child: Text(context.loc.close,
                 style: const TextStyle(color: Colors.grey)),
           ),
-          ElevatedButton(
+          TextButton(
             onPressed: () {
               Navigator.pop(context);
               Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (_) => const PairFinderTutorial(),
+                ),
+              );
+            },
+            child: const Text('Tutorial', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const PairFinderGame(),
                 ),
               );
             },

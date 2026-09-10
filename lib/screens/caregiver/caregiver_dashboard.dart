@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'caregiver_analytics_dashboard.dart';
 import '../../services/family_contacts_service.dart';
+import '../../services/patient_service.dart';
+import '../../services/reminder_service.dart';
 
 /// Caregiver Dashboard matching the Seven Sisters Care design.
 ///
@@ -16,7 +19,9 @@ import '../../services/family_contacts_service.dart';
 ///   5. Remainder Management (Medicine, Hydration, Customized, Doctor Appointment, Food)
 ///   6. Dynamic Report Generator
 class CaregiverDashboard extends StatefulWidget {
-  const CaregiverDashboard({super.key});
+  final String? caregiverUsername;
+
+  const CaregiverDashboard({super.key, this.caregiverUsername});
 
   @override
   State<CaregiverDashboard> createState() => _CaregiverDashboardState();
@@ -26,6 +31,26 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
   String _activeTab = 'Home';
   bool _settingsExpanded = true;
   bool _textReadingPreferenceYes = true;
+
+  @override
+  void initState() {
+    super.initState();
+    PatientService.instance.addListener(_onPatientChanged);
+    final caregiverUsername = widget.caregiverUsername;
+    if (caregiverUsername != null && caregiverUsername.isNotEmpty) {
+      PatientService.instance.loadForCaregiver(caregiverUsername);
+    }
+  }
+
+  @override
+  void dispose() {
+    PatientService.instance.removeListener(_onPatientChanged);
+    super.dispose();
+  }
+
+  void _onPatientChanged() {
+    if (mounted) setState(() {});
+  }
 
   // Report Generator State: 'Weekly', 'Monthly', 'Custom'
   String _reportBasis = 'Weekly';
@@ -739,9 +764,9 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Patient Name',
-                      style: TextStyle(
+                    Text(
+                      PatientService.instance.patient?.name ?? 'Patient Name',
+                      style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF005F46),
@@ -750,9 +775,11 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
                     const SizedBox(height: 2),
                     Row(
                       children: [
-                        const Text(
-                          'Age: 67',
-                          style: TextStyle(fontSize: 12, color: Colors.black87),
+                        Text(
+                          PatientService.instance.patient != null
+                              ? 'Age: ${_calculateAge(PatientService.instance.patient!.dateOfBirth)}'
+                              : 'Age: 67',
+                          style: const TextStyle(fontSize: 12, color: Colors.black87),
                         ),
                         const SizedBox(width: 10),
                         const Expanded(
@@ -923,59 +950,86 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
     );
   }
 
+  int _calculateAge(DateTime dateOfBirth) {
+    final today = DateTime.now();
+    var age = today.year - dateOfBirth.year;
+    if (today.month < dateOfBirth.month ||
+        (today.month == dateOfBirth.month && today.day < dateOfBirth.day)) {
+      age--;
+    }
+    return age;
+  }
+
   // ---------------------------------------------------------------------------
   // CARD 2: REMAINDER NOTIFICATIONS
   // ---------------------------------------------------------------------------
   Widget _buildRemainderNotificationsCard() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header Pill
-          Row(
-            children: const [
-              Icon(Icons.notifications_active_rounded,
-                  color: Color(0xFF005F46), size: 18),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Remainder Notifications',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF005F46),
-                  ),
-                ),
+    return ListenableBuilder(
+      listenable: ReminderService.instance,
+      builder: (context, _) {
+        final reminders = ReminderService.instance.reminders;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header Pill
+              Row(
+                children: const [
+                  Icon(Icons.notifications_active_rounded,
+                      color: Color(0xFF005F46), size: 18),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Remainder Notifications',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF005F46),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
 
-          _buildNotificationPill('Breakfast', 'Completed', true),
-          const SizedBox(height: 6),
-          _buildNotificationPill('Aspirin', 'Completed', true),
-          const SizedBox(height: 6),
-          _buildNotificationPill('Hydration', 'Missed', false),
-          const SizedBox(height: 6),
-          _buildNotificationPill('Lunch', 'Missed', false),
-          const SizedBox(height: 6),
-          _buildNotificationPill('Prayer', 'Completed', true),
-        ],
-      ),
+              if (reminders.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text('No reminders set for today.',
+                      style: TextStyle(fontSize: 12, color: Colors.black54)),
+                )
+              else
+                for (final r in reminders.take(5)) ...[
+                  _buildNotificationPill(
+                    r.label,
+                    r.isCompleted
+                        ? 'Completed'
+                        : r.isAlerted
+                            ? 'Alerted'
+                            : 'Pending',
+                    r.isCompleted,
+                  ),
+                  const SizedBox(height: 6),
+                ],
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -990,15 +1044,21 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFFD48B1C),
+          Expanded(
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFD48B1C),
+              ),
             ),
           ),
+          const SizedBox(width: 8),
           Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 status,
@@ -1359,385 +1419,667 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
   // CARD 5: REMAINDER MANAGEMENT
   // ---------------------------------------------------------------------------
   Widget _buildRemainderManagementCard() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: const [
-              Icon(Icons.calendar_month_rounded,
-                  color: Color(0xFF005F46), size: 20),
-              SizedBox(width: 8),
-              Text(
-                'Remainder Management',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF005F46),
-                ),
+    return ListenableBuilder(
+      listenable: ReminderService.instance,
+      builder: (context, _) {
+        final reminders = ReminderService.instance.reminders;
+        final medicineReminders = reminders
+            .where((r) => r.type == ReminderType.medicine)
+            .toList();
+        final hydrationReminders = reminders
+            .where((r) => r.type == ReminderType.hydration)
+            .toList();
+        final customReminders = reminders
+            .where((r) => r.type == ReminderType.customize)
+            .toList();
+        final doctorReminders = reminders
+            .where((r) => r.type == ReminderType.doctorAppointment)
+            .toList();
+        final foodReminders = reminders
+            .where((r) => r.type == ReminderType.food)
+            .toList();
+
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-
-          Row(
+          padding: const EdgeInsets.all(14),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Column 1: Medicine
-              Expanded(
-                flex: 5,
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF7FAF8),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFE2EBE5)),
+              Row(
+                children: const [
+                  Icon(Icons.calendar_month_rounded,
+                      color: Color(0xFF005F46), size: 20),
+                  SizedBox(width: 8),
+                  Text(
+                    'Remainder Management',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF005F46),
+                    ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.medication_rounded,
-                              size: 16, color: Color(0xFF005F46)),
-                          const SizedBox(width: 4),
-                          const Expanded(
-                            child: Text('Medicine',
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                    fontSize: 12, fontWeight: FontWeight.bold)),
-                          ),
-                          const SizedBox(width: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 5, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF005F46),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Text('+ Add',
-                                style: TextStyle(
-                                    fontSize: 8.5,
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold)),
-                          ),
-                          const SizedBox(width: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade300,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Text('Edit',
-                                style: TextStyle(
-                                    fontSize: 9, color: Colors.black87)),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-
-                      // Aspirin
-                      Text('Aspirin',
-                          style: const TextStyle(
-                              fontSize: 12, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 3),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildPillTag('Dosage', '1 TABLET',
-                                    const Color(0xFFD4E6F1)),
-                                const SizedBox(height: 3),
-                                _buildPillTag(
-                                    'Time', '9:00 AM', const Color(0xFFEAECEE)),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            width: 50,
-                            height: 35,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: Colors.grey.shade300),
-                            ),
-                            child: const Icon(Icons.medication,
-                                color: Color(0xFF005F46), size: 24),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 10),
-
-                      // Metformin
-                      Text('Metformin',
-                          style: const TextStyle(
-                              fontSize: 12, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 3),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildPillTag('Dosage', '1 TABLET',
-                                    const Color(0xFFD4E6F1)),
-                                const SizedBox(height: 3),
-                                _buildPillTag(
-                                    'Time', '9:00 PM', const Color(0xFFEAECEE)),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFD5D8DC),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: const Text(
-                              'Upload\nImage',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                  fontSize: 8, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+                ],
               ),
+              const SizedBox(height: 12),
 
-              const SizedBox(width: 10),
-
-              // Column 2: Hydration & Customized & Doctor & Food
-              Expanded(
-                flex: 6,
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        // Hydration
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF7FAF8),
-                              borderRadius: BorderRadius.circular(8),
-                              border:
-                                  Border.all(color: const Color(0xFFE2EBE5)),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    const Icon(Icons.water_drop,
-                                        size: 14, color: Color(0xFF0288D1)),
-                                    const SizedBox(width: 4),
-                                    const Expanded(
-                                      child: Text('Hydration',
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.bold)),
-                                    ),
-                                    const Text('+Add',
-                                        style: TextStyle(
-                                            fontSize: 8,
-                                            color: Color(0xFF005F46),
-                                            fontWeight: FontWeight.bold)),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                const Text('Time: 9:00 AM',
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Column 1: Medicine
+                  Expanded(
+                    flex: 5,
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF7FAF8),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFE2EBE5)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.medication_rounded,
+                                  size: 16, color: Color(0xFF005F46)),
+                              const SizedBox(width: 4),
+                              const Expanded(
+                                child: Text('Medicine',
+                                    overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
-                                        fontSize: 9.5,
-                                        fontWeight: FontWeight.w600)),
-                                const Text('Time: 12:00 PM',
-                                    style: TextStyle(
-                                        fontSize: 9.5,
-                                        fontWeight: FontWeight.w600)),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-
-                        // Customized
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF7FAF8),
-                              borderRadius: BorderRadius.circular(8),
-                              border:
-                                  Border.all(color: const Color(0xFFE2EBE5)),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    const Icon(Icons.note_alt,
-                                        size: 14, color: Color(0xFFE91E63)),
-                                    const SizedBox(width: 4),
-                                    const Expanded(
-                                      child: Text('Customized',
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.bold)),
-                                    ),
-                                    const Text('+Add',
-                                        style: TextStyle(
-                                            fontSize: 8,
-                                            color: Color(0xFF005F46),
-                                            fontWeight: FontWeight.bold)),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                const Text('Morning Walk 7:00 AM',
-                                    style: TextStyle(
-                                        fontSize: 8.5,
-                                        color: Color(0xFFD48B1C),
-                                        fontWeight: FontWeight.w600)),
-                                const Text('Prayer 4:00 PM',
-                                    style: TextStyle(
-                                        fontSize: 8.5,
-                                        color: Color(0xFFD48B1C),
-                                        fontWeight: FontWeight.w600)),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    // Doctor Appointment & Food
-                    Row(
-                      children: [
-                        // Doctor Appointment
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF7FAF8),
-                              borderRadius: BorderRadius.circular(8),
-                              border:
-                                  Border.all(color: const Color(0xFFE2EBE5)),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: const [
-                                    Icon(Icons.medical_services,
-                                        size: 14, color: Color(0xFF005F46)),
-                                    SizedBox(width: 4),
-                                    Expanded(
-                                      child: Text('Doctor\nAppointment',
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                              fontSize: 9.5,
-                                              fontWeight: FontWeight.bold,
-                                              height: 1.1)),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                const Text('Appointment Date:',
-                                    style: TextStyle(fontSize: 8)),
-                                const Text('16 May 2026',
-                                    style: TextStyle(
-                                        fontSize: 10,
-                                        color: Color(0xFFD48B1C),
+                                        fontSize: 12,
                                         fontWeight: FontWeight.bold)),
-                                const Text('Current Time: 9:00AM',
-                                    style: TextStyle(fontSize: 8)),
-                              ],
-                            ),
+                              ),
+                              const SizedBox(width: 4),
+                              InkWell(
+                                onTap: () => _showReminderEditor(
+                                    type: ReminderType.medicine),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 5, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF005F46),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Text('+ Add',
+                                      style: TextStyle(
+                                          fontSize: 8.5,
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold)),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                        const SizedBox(width: 8),
+                          const SizedBox(height: 8),
 
-                        // Food
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF7FAF8),
-                              borderRadius: BorderRadius.circular(8),
-                              border:
-                                  Border.all(color: const Color(0xFFE2EBE5)),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    const Icon(Icons.restaurant,
-                                        size: 14, color: Color(0xFF5D6D7E)),
-                                    const SizedBox(width: 4),
-                                    const Expanded(
-                                      child: Text('Food',
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.bold)),
+                          if (medicineReminders.isEmpty)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 8),
+                              child: Text('No medicine reminders added.',
+                                  style: TextStyle(
+                                      fontSize: 10, color: Colors.grey)),
+                            )
+                          else
+                            for (final med in medicineReminders) ...[
+                              Text(med.label,
+                                  style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 3),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        _buildPillTag(
+                                            'Dosage',
+                                            med.dosage ?? '1 DOSE',
+                                            const Color(0xFFD4E6F1)),
+                                        const SizedBox(height: 3),
+                                        _buildPillTag(
+                                            'Time',
+                                            _formatTime(med.time),
+                                            const Color(0xFFEAECEE)),
+                                      ],
                                     ),
-                                    const Text('Edit',
-                                        style: TextStyle(
-                                            fontSize: 8, color: Colors.grey)),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  InkWell(
+                                    onTap: () => _pickReminderPhoto(med),
+                                    borderRadius: BorderRadius.circular(6),
+                                    child: Container(
+                                      width: 45,
+                                      height: 35,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(
+                                            color: Colors.grey.shade300),
+                                      ),
+                                      child: med.photoPath != null
+                                          ? const Icon(Icons.check_circle,
+                                              color: Color(0xFF005F46), size: 20)
+                                          : const Icon(Icons.medication,
+                                              color: Color(0xFF005F46), size: 20),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    visualDensity: VisualDensity.compact,
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    icon: const Icon(Icons.edit_outlined,
+                                        size: 14, color: Colors.grey),
+                                    onPressed: () =>
+                                        _showReminderEditor(reminder: med),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                            ],
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(width: 10),
+
+                  // Column 2: Hydration & Customized & Doctor & Food
+                  Expanded(
+                    flex: 6,
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            // Hydration
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF7FAF8),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                      color: const Color(0xFFE2EBE5)),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.water_drop,
+                                            size: 14,
+                                            color: Color(0xFF0288D1)),
+                                        const SizedBox(width: 4),
+                                        const Expanded(
+                                          child: Text('Hydration',
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold)),
+                                        ),
+                                        InkWell(
+                                          onTap: () => _showReminderEditor(
+                                              type: ReminderType.hydration),
+                                          child: const Text('+Add',
+                                              style: TextStyle(
+                                                  fontSize: 8,
+                                                  color: Color(0xFF005F46),
+                                                  fontWeight: FontWeight.bold)),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    if (hydrationReminders.isEmpty)
+                                      const Text('No hydration reminders',
+                                          style: TextStyle(
+                                              fontSize: 8.5, color: Colors.grey))
+                                    else
+                                      for (final h in hydrationReminders.take(2))
+                                        InkWell(
+                                          onTap: () => _showReminderEditor(
+                                              reminder: h),
+                                          child: Text(
+                                              'Time: ${_formatTime(h.time)}',
+                                              style: const TextStyle(
+                                                  fontSize: 9.5,
+                                                  fontWeight:
+                                                      FontWeight.w600)),
+                                        ),
                                   ],
                                 ),
-                                const SizedBox(height: 4),
-                                const Text('Breakfast 8:00 AM',
-                                    style: TextStyle(
-                                        fontSize: 8.5,
-                                        color: Color(0xFFD48B1C))),
-                                const Text('Lunch 1:00PM',
-                                    style: TextStyle(
-                                        fontSize: 8.5,
-                                        color: Color(0xFFD48B1C))),
-                                const Text('Dinner 8:00PM',
-                                    style: TextStyle(
-                                        fontSize: 8.5,
-                                        color: Color(0xFFD48B1C))),
-                              ],
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: 8),
+
+                            // Customized
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF7FAF8),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                      color: const Color(0xFFE2EBE5)),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.note_alt,
+                                            size: 14,
+                                            color: Color(0xFFE91E63)),
+                                        const SizedBox(width: 4),
+                                        const Expanded(
+                                          child: Text('Customized',
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold)),
+                                        ),
+                                        InkWell(
+                                          onTap: () => _showReminderEditor(
+                                              type: ReminderType.customize),
+                                          child: const Text('+Add',
+                                              style: TextStyle(
+                                                  fontSize: 8,
+                                                  color: Color(0xFF005F46),
+                                                  fontWeight: FontWeight.bold)),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    if (customReminders.isEmpty)
+                                      const Text('No custom reminders',
+                                          style: TextStyle(
+                                              fontSize: 8.5, color: Colors.grey))
+                                    else
+                                      for (final c in customReminders.take(2))
+                                        InkWell(
+                                          onTap: () => _showReminderEditor(
+                                              reminder: c),
+                                          child: Text(
+                                              '${c.label} ${_formatTime(c.time)}',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                  fontSize: 8.5,
+                                                  color: Color(0xFFD48B1C),
+                                                  fontWeight:
+                                                      FontWeight.w600)),
+                                        ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        // Doctor Appointment & Food
+                        Row(
+                          children: [
+                            // Doctor Appointment
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF7FAF8),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                      color: const Color(0xFFE2EBE5)),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.medical_services,
+                                            size: 14,
+                                            color: Color(0xFF005F46)),
+                                        const SizedBox(width: 4),
+                                        const Expanded(
+                                          child: Text('Doctor\nAppointment',
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                  fontSize: 9.5,
+                                                  fontWeight: FontWeight.bold,
+                                                  height: 1.1)),
+                                        ),
+                                        InkWell(
+                                          onTap: () => _showReminderEditor(
+                                              type: ReminderType
+                                                  .doctorAppointment),
+                                          child: const Text('+Add',
+                                              style: TextStyle(
+                                                  fontSize: 8,
+                                                  color: Color(0xFF005F46),
+                                                  fontWeight: FontWeight.bold)),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    if (doctorReminders.isEmpty)
+                                      const Text('16 May 2026\n9:00 AM',
+                                          style: TextStyle(
+                                              fontSize: 9,
+                                              color: Color(0xFFD48B1C),
+                                              fontWeight: FontWeight.bold))
+                                    else
+                                      for (final doc in doctorReminders.take(1))
+                                        InkWell(
+                                          onTap: () => _showReminderEditor(
+                                              reminder: doc),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                  doc.appointmentDate != null
+                                                      ? _formatDate(doc
+                                                          .appointmentDate!)
+                                                      : 'Date set',
+                                                  style: const TextStyle(
+                                                      fontSize: 10,
+                                                      color: Color(0xFFD48B1C),
+                                                      fontWeight:
+                                                          FontWeight.bold)),
+                                              Text(
+                                                  'Time: ${_formatTime(doc.time)}',
+                                                  style: const TextStyle(
+                                                      fontSize: 8)),
+                                            ],
+                                          ),
+                                        ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+
+                            // Food
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF7FAF8),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                      color: const Color(0xFFE2EBE5)),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.restaurant,
+                                            size: 14,
+                                            color: Color(0xFF5D6D7E)),
+                                        const SizedBox(width: 4),
+                                        const Expanded(
+                                          child: Text('Food',
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold)),
+                                        ),
+                                        InkWell(
+                                          onTap: () => _showReminderEditor(
+                                              type: ReminderType.food),
+                                          child: const Text('+Add',
+                                              style: TextStyle(
+                                                  fontSize: 8,
+                                                  color: Color(0xFF005F46),
+                                                  fontWeight: FontWeight.bold)),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    if (foodReminders.isEmpty)
+                                      const Text('Lunch 1:00 PM',
+                                          style: TextStyle(
+                                              fontSize: 8.5,
+                                              color: Color(0xFFD48B1C)))
+                                    else
+                                      for (final f in foodReminders.take(2))
+                                        InkWell(
+                                          onTap: () => _showReminderEditor(
+                                              reminder: f),
+                                          child: Text(
+                                              '${f.label} ${_formatTime(f.time)}',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                  fontSize: 8.5,
+                                                  color: Color(0xFFD48B1C))),
+                                        ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
+        );
+      },
+    );
+  }
+
+  Future<void> _pickReminderPhoto(Reminder reminder) async {
+    final image = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      ReminderService.instance.updateReminder(
+        reminder.copyWith(photoPath: image.path),
+      );
+    }
+  }
+
+  Future<void> _showReminderEditor({
+    Reminder? reminder,
+    ReminderType? type,
+  }) async {
+    final reminderType = type ?? reminder?.type ?? ReminderType.customize;
+    final labelController = TextEditingController(
+      text: reminder?.label ?? _defaultReminderLabel(reminderType),
+    );
+    final dosageController = TextEditingController(
+      text: reminder?.dosage ?? '',
+    );
+    var selectedTime = reminder?.time ?? TimeOfDay.now();
+    var selectedDate = reminder?.appointmentDate ?? DateTime.now();
+    String? photoPath = reminder?.photoPath;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final needsName =
+              reminderType == ReminderType.medicine ||
+              reminderType == ReminderType.customize ||
+              reminderType == ReminderType.food;
+
+          return AlertDialog(
+            title: Text(
+              '${reminder == null ? 'Add' : 'Edit'} ${_typeLabel(reminderType)}',
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (needsName)
+                    TextField(
+                      controller: labelController,
+                      decoration: const InputDecoration(labelText: 'Name'),
+                    ),
+                  if (reminderType == ReminderType.medicine)
+                    TextField(
+                      controller: dosageController,
+                      decoration: const InputDecoration(labelText: 'Dosage'),
+                    ),
+                  if (reminderType == ReminderType.doctorAppointment)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text('Date: ${_formatDate(selectedDate)}'),
+                      trailing: const Icon(Icons.calendar_month),
+                      onTap: () async {
+                        final date = await showDatePicker(
+                          context: context,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime(2100),
+                          initialDate: selectedDate,
+                        );
+                        if (date != null) {
+                          setDialogState(() => selectedDate = date);
+                        }
+                      },
+                    ),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text('Time: ${_formatTime(selectedTime)}'),
+                    trailing: const Icon(Icons.schedule),
+                    onTap: () async {
+                      final time = await showTimePicker(
+                        context: context,
+                        initialTime: selectedTime,
+                      );
+                      if (time != null) {
+                        setDialogState(() => selectedTime = time);
+                      }
+                    },
+                  ),
+                  if (reminderType == ReminderType.medicine)
+                    OutlinedButton.icon(
+                      icon: Icon(
+                        photoPath == null ? Icons.upload_file : Icons.image,
+                      ),
+                      label: Text(
+                        photoPath == null ? 'Upload photo' : 'Photo selected',
+                      ),
+                      onPressed: () async {
+                        final image = await ImagePicker().pickImage(
+                          source: ImageSource.gallery,
+                        );
+                        if (image != null) {
+                          setDialogState(() => photoPath = image.path);
+                        }
+                      },
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              if (reminder != null)
+                TextButton(
+                  onPressed: () {
+                    ReminderService.instance.removeReminder(reminder.id);
+                    Navigator.pop(dialogContext);
+                  },
+                  child: const Text('Delete',
+                      style: TextStyle(color: Colors.red)),
+                ),
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final label = labelController.text.trim();
+                  if (needsName && label.isEmpty) return;
+
+                  final updated = Reminder(
+                    id: reminder?.id ??
+                        DateTime.now().microsecondsSinceEpoch.toString(),
+                    type: reminderType,
+                    label: label.isEmpty
+                        ? _defaultReminderLabel(reminderType)
+                        : label,
+                    time: selectedTime,
+                    dosage: reminderType == ReminderType.medicine
+                        ? dosageController.text.trim()
+                        : null,
+                    appointmentDate:
+                        reminderType == ReminderType.doctorAppointment
+                            ? selectedDate
+                            : null,
+                    photoPath: photoPath,
+                    status: reminder?.status ?? ReminderStatus.pending,
+                  );
+
+                  if (reminder == null) {
+                    ReminderService.instance.addReminder(updated);
+                  } else {
+                    ReminderService.instance.updateReminder(updated);
+                  }
+                  Navigator.pop(dialogContext);
+                },
+                child: const Text('Save'),
+              ),
+            ],
+          );
+        },
       ),
     );
+    labelController.dispose();
+    dosageController.dispose();
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day.toString().padLeft(2, '0')} ${_monthName(date.month)} ${date.year}';
+  }
+
+  String _formatTime(TimeOfDay time) {
+    final hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
+    final minute = time.minute.toString().padLeft(2, '0');
+    final period = time.period == DayPeriod.am ? 'AM' : 'PM';
+    return '$hour:$minute $period';
+  }
+
+  String _defaultReminderLabel(ReminderType type) {
+    switch (type) {
+      case ReminderType.medicine:
+        return 'Medicine';
+      case ReminderType.hydration:
+        return 'Hydration';
+      case ReminderType.doctorAppointment:
+        return 'Doctor Appointment';
+      case ReminderType.customize:
+        return 'Activity';
+      case ReminderType.food:
+        return 'Meal';
+    }
+  }
+
+  String _typeLabel(ReminderType type) {
+    switch (type) {
+      case ReminderType.medicine:
+        return 'Medicine';
+      case ReminderType.hydration:
+        return 'Hydration';
+      case ReminderType.doctorAppointment:
+        return 'Doctor Appointment';
+      case ReminderType.customize:
+        return 'Customized Reminder';
+      case ReminderType.food:
+        return 'Food Reminder';
+    }
   }
 
   Widget _buildPillTag(String label, String value, Color color) {

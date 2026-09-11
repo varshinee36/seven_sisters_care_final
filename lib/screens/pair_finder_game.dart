@@ -5,11 +5,8 @@ import 'package:flutter/material.dart';
 
 import '../models/cognitive_game_performance.dart';
 import '../services/cognitive_adaptive_engine.dart';
-<<<<<<< HEAD
-import '../services/patient_service.dart';
-=======
->>>>>>> 21743ce (daily activities fix)
 import 'patient/games_memory_screen.dart';
+import 'patient/memory_hunt_feedback_dialog.dart';
 
 enum GameLevel {
   level1(1),
@@ -340,17 +337,10 @@ class _PairFinderGameState extends State<PairFinderGame> {
     }
 
     _currentLevel = startLevel;
-<<<<<<< HEAD
-    final activePatientId = PatientService.instance.currentPatient?.patientId ?? 'patient_001';
-
-    _adaptiveSession = CognitiveAdaptiveEngine.instance.startSession(
-      patientId: activePatientId,
-=======
     _currentTargetSeconds = startTimer.round();
 
     _adaptiveSession = CognitiveAdaptiveEngine.instance.startSession(
       patientId: 'patient_001',
->>>>>>> 21743ce (daily activities fix)
       gameId: 'pair_finder',
       gameName: 'Pair Finder',
       startingLevel: startLevel,

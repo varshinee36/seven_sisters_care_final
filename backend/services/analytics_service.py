@@ -131,3 +131,69 @@ def get_dashboard_analytics(patient_id: str) -> dict:
         "memoryHunt": memory_hunt_summary,
         "pairFinder": pair_finder_summary,
     }
+
+
+def get_weekly_analytics(patient_id: str) -> dict:
+    """
+    Computes weekly analytics for a given patient from game_performance:
+    - weekly_average_performance: average performance score over the last 7 days
+    - weekly_accuracy: average accuracy over the last 7 days
+    - weekly_completion_trend: daily/session performance trend data
+    """
+    if not patient_id or patient_id.strip() == "":
+        return {
+            "weekly_average_performance": 0.0,
+            "weekly_accuracy": 0.0,
+            "weekly_completion_trend": [],
+        }
+
+    from datetime import timedelta
+
+    cutoff = datetime.utcnow() - timedelta(days=7)
+    cutoff_iso = cutoff.isoformat()
+
+    # Query records from the last 7 days (or fallback to latest records)
+    records = list(
+        game_performance_collection.find({
+            "patient_id": patient_id.strip(),
+            "timestamp": {"$gte": cutoff_iso},
+        }).sort("timestamp", 1)
+    )
+
+    if not records:
+        records = list(
+            game_performance_collection.find({"patient_id": patient_id.strip()})
+            .sort("timestamp", -1)
+            .limit(7)
+        )
+        records.reverse()
+
+    if not records:
+        return {
+            "weekly_average_performance": 0.0,
+            "weekly_accuracy": 0.0,
+            "weekly_completion_trend": [],
+        }
+
+    scores = [r.get("final_performance_score", 0.0) for r in records if "final_performance_score" in r]
+    accuracies = [r.get("cumulative_accuracy", 0.0) for r in records if "cumulative_accuracy" in r]
+
+    weekly_avg_perf = round(sum(scores) / len(scores), 1) if scores else 0.0
+    weekly_acc = round(sum(accuracies) / len(accuracies), 1) if accuracies else 0.0
+
+    trend = [
+        {
+            "game_name": r.get("game_name", "Cognitive Game"),
+            "performance": r.get("final_performance_score", 0.0),
+            "accuracy": r.get("cumulative_accuracy", 0.0),
+            "timestamp": r.get("timestamp", ""),
+        }
+        for r in records
+    ]
+
+    return {
+        "weekly_average_performance": weekly_avg_perf,
+        "weekly_accuracy": weekly_acc,
+        "weekly_completion_trend": trend,
+    }
+

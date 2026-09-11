@@ -7,12 +7,14 @@ import 'memory_hunt_widgets.dart';
 /// Auto-advances after a hidden 30s timer (no Continue button, timer not shown).
 class MemoryHuntMemorizeView extends StatelessWidget {
   final int level;
+  final int seconds;
   final List<MemoryHuntItem> items;
   final VoidCallback onSpeaker;
 
   const MemoryHuntMemorizeView({
     super.key,
     required this.level,
+    required this.seconds,
     required this.items,
     required this.onSpeaker,
   });
@@ -34,18 +36,43 @@ class MemoryHuntMemorizeView extends StatelessWidget {
     return Column(
       children: [
         MemoryHuntHeader(onSpeaker: onSpeaker),
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
         MemoryHuntPill(
           text: context.loc.memoryHunt,
           color: const Color(0xFF7A97FF),
           onSpeaker: onSpeaker,
         ),
         const SizedBox(height: 10),
-        MemoryHuntPill(
-          text: context.loc.levelXOf5(level),
-          color: const Color(0xFFEA247F),
-          fontSize: 20,
-          onSpeaker: onSpeaker,
+        Row(
+          children: [
+            Expanded(
+              child: MemoryHuntPill(
+                text: context.loc.levelXOf5(level),
+                color: const Color(0xFFEA247F),
+                fontSize: 18,
+                onSpeaker: onSpeaker,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF5D4037),
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                child: Text(
+                  'Timer : $seconds',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 16),
 

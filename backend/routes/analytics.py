@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from models.analytics import GamePerformanceRecord
 from services.analytics_service import (
     get_dashboard_analytics,
+    get_weekly_analytics,
     save_game_performance,
 )
 
@@ -26,6 +27,20 @@ def get_patient_dashboard_analytics(patient_id: str):
         )
 
 
+@router.get("/weekly/{patient_id}")
+def get_patient_weekly_analytics(patient_id: str):
+    """
+    Returns weekly aggregated performance, accuracy, and completion trend.
+    """
+    try:
+        return get_weekly_analytics(patient_id)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving weekly analytics for patient {patient_id}: {str(e)}"
+        )
+
+
 @router.post("/record")
 def record_game_result(record: GamePerformanceRecord):
     """
@@ -39,3 +54,4 @@ def record_game_result(record: GamePerformanceRecord):
             status_code=500,
             detail=f"Error saving game performance: {str(e)}"
         )
+

@@ -3,15 +3,14 @@ import 'package:flutter/material.dart';
 import '../../localization/app_localizations.dart';
 import 'memory_hunt_widgets.dart';
 
-/// Screen 3 — Answer selection (multi-select).
+/// Screen 3 — Answer selection (multi-select, evaluation without hints).
 class MemoryHuntAnswerView extends StatelessWidget {
   final int level;
   final int targetCount;
-  final int hintsRemaining;
+  final int seconds;
   final List<MemoryHuntItem> items;
   final Set<String> selectedIds;
   final ValueChanged<String> onToggle;
-  final VoidCallback onHint;
   final VoidCallback onSubmit;
   final VoidCallback onSpeaker;
 
@@ -19,11 +18,10 @@ class MemoryHuntAnswerView extends StatelessWidget {
     super.key,
     required this.level,
     required this.targetCount,
-    required this.hintsRemaining,
+    required this.seconds,
     required this.items,
     required this.selectedIds,
     required this.onToggle,
-    required this.onHint,
     required this.onSubmit,
     required this.onSpeaker,
   });
@@ -35,7 +33,7 @@ class MemoryHuntAnswerView extends StatelessWidget {
     return Column(
       children: [
         MemoryHuntHeader(onSpeaker: onSpeaker),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
 
         // Instruction title with nearby voice-over
         Container(
@@ -68,7 +66,7 @@ class MemoryHuntAnswerView extends StatelessWidget {
           ),
         ),
 
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
 
         // Responsive grid of items
         Expanded(
@@ -93,31 +91,79 @@ class MemoryHuntAnswerView extends StatelessWidget {
           ),
         ),
 
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
 
-        // Hint (with counter) + Submit + Speaker
+        // Timer Section
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: const Color(0xFF5D4037),
+                  width: 2.5,
+                ),
+              ),
+              child: Center(
+                child: Container(
+                  width: 2.5,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF5D4037),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Timer : $seconds',
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 10),
+
+        // Submit + Speaker controls (Evaluation without hints)
         Row(
           children: [
             Expanded(
-              child: MemoryHuntYellowButton(
-                label: context.loc.hintWithCount(hintsRemaining),
-                icon: Icons.lightbulb_outline,
-                onPressed: onHint,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: MemoryHuntYellowButton(
-                label: context.loc.submit,
-                icon: Icons.check_circle_outline,
-                onPressed: onSubmit,
+              child: SizedBox(
+                height: 52,
+                child: ElevatedButton.icon(
+                  onPressed: onSubmit,
+                  icon: const Icon(Icons.check_circle_outline, color: Colors.white, size: 22),
+                  label: Text(
+                    context.loc.submit,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFFB82E),
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: 10),
             MemoryHuntSpeakerButton(onPressed: onSpeaker),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
       ],
     );
   }

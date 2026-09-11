@@ -1,8 +1,12 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 
 import '../../localization/app_localizations.dart';
+import '../../models/cognitive_game_performance.dart';
+import '../../services/cognitive_adaptive_engine.dart';
+import '../../services/patient_service.dart';
 import 'memory_hunt_answer_view.dart';
 import 'memory_hunt_data.dart';
 import 'memory_hunt_feedback_dialog.dart';
@@ -11,14 +15,7 @@ import 'memory_hunt_ready_view.dart';
 
 /// Memory Hunt game flow across 5 progressive levels.
 ///
-/// Flow: Memorize (hidden 30s) → Get Ready (auto 6s) → Answer → Feedback / Hint → Next Level
-///
-/// Levels:
-/// Level 1: 3 objects (Apple, Book, Ball)
-/// Level 2: 5 objects (Clock, Flower, House, Tree, Sun)
-/// Level 3: 7 objects (Star, Bird, Fish, Hat, Key, Chair, Boat)
-/// Level 4: 8 objects (Train, Umbrella, Camera, Guitar, Shoe, Phone, Bicycle, Lamp)
-/// Level 5: 10 objects (Apple, Clock, Sun, Tree, Star, Camera, Guitar, Umbrella, Bird, Train)
+/// Flow: Memorize (with 30s countdown timer) → Get Ready (auto 6s) → Answer (with countdown timer max 60s) → Next Level
 enum MemoryHuntStep { memorize, ready, answer }
 
 class MemoryHuntScreen extends StatefulWidget {
@@ -31,36 +28,58 @@ class MemoryHuntScreen extends StatefulWidget {
 class _MemoryHuntScreenState extends State<MemoryHuntScreen> {
   MemoryHuntStep _step = MemoryHuntStep.memorize;
 
-  /// Hidden memorize duration.
-  static const Duration _memorizeDuration = Duration(seconds: 30);
-
-  /// Get Ready breathing duration.
-  static const Duration _readyDuration = Duration(seconds: 6);
-
   Timer? _stepTimer;
 
-  /// Active level index (1 through 5).
   int _currentLevel = 1;
+  int _currentTargetSeconds = 60;
+  int _memorizeTargetSeconds = 30;
+  int _memorizeSeconds = 30;
+  int _answerSeconds = 60;
 
-  /// Hints used for the active level (max 3 per level).
-  int _hintsUsed = 0;
+  bool _gameFinished = false;
+  AdaptiveSessionState? _adaptiveSession;
+  int? _nextAdaptedLevel;
+  int? _nextAdaptedTimer;
+  DateTime? _levelStartTime;
 
   final Set<String> _selectedIds = {};
 
   MemoryHuntLevelData get _currentLevelData =>
-      MemoryHuntCatalog.levels[_currentLevel - 1];
-
-  int get _hintsRemaining => (3 - _hintsUsed).clamp(0, 3);
+      MemoryHuntCatalog.levels[(_currentLevel - 1).clamp(0, MemoryHuntCatalog.levels.length - 1)];
 
   @override
   void initState() {
     super.initState();
-    _startStepTimer();
+    _initAdaptiveSession();
+  }
+
+  Future<void> _initAdaptiveSession() async {
+    final entry = await CognitiveAdaptiveEngine.instance
+        .determineEntryLevelAndTimer(targetGameId: 'memory_hunt', maxLevels: 5);
+
+    _currentLevel = entry.startingLevel.clamp(1, 5);
+    _currentTargetSeconds = entry.startingTimer.round().clamp(15, 60);
+    _memorizeTargetSeconds = (_currentTargetSeconds * 0.5).round().clamp(10, 60);
+
+    final activePatientId = PatientService.instance.currentPatient?.patientId ?? 'patient_001';
+
+    _adaptiveSession = CognitiveAdaptiveEngine.instance.startSession(
+      patientId: activePatientId,
+      gameId: 'memory_hunt',
+      gameName: 'Memory Hunt',
+      startingLevel: _currentLevel,
+      startingTimer: _currentTargetSeconds.toDouble(),
+    );
+
+    _startMemorizeStep();
   }
 
   @override
   void dispose() {
     _stepTimer?.cancel();
+    if (_adaptiveSession != null) {
+      CognitiveAdaptiveEngine.instance.endSession(_adaptiveSession!);
+    }
     super.dispose();
   }
 
@@ -69,22 +88,114 @@ class _MemoryHuntScreenState extends State<MemoryHuntScreen> {
     _stepTimer = null;
   }
 
-  void _startStepTimer() {
+  void _startMemorizeStep() {
     _cancelStepTimer();
+    setState(() {
+      _step = MemoryHuntStep.memorize;
+      _memorizeSeconds = _memorizeTargetSeconds;
+      _gameFinished = false;
+    });
 
-    if (_step == MemoryHuntStep.memorize) {
-      _stepTimer = Timer(_memorizeDuration, () {
-        if (!mounted) return;
-        setState(() => _step = MemoryHuntStep.ready);
-        _startStepTimer();
+    _stepTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted || _gameFinished) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        if (_memorizeSeconds > 0) {
+          _memorizeSeconds--;
+        } else {
+          timer.cancel();
+          _startReadyStep();
+        }
       });
-    } else if (_step == MemoryHuntStep.ready) {
-      _stepTimer = Timer(_readyDuration, () {
-        if (!mounted) return;
-        setState(() => _step = MemoryHuntStep.answer);
-        _cancelStepTimer();
+    });
+  }
+
+  void _startReadyStep() {
+    _cancelStepTimer();
+    setState(() {
+      _step = MemoryHuntStep.ready;
+    });
+
+    int readySeconds = 6;
+    _stepTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted || _gameFinished) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        if (readySeconds > 0) {
+          readySeconds--;
+        } else {
+          timer.cancel();
+          _startAnswerStep();
+        }
       });
+    });
+  }
+
+  void _startAnswerStep() {
+    _cancelStepTimer();
+    setState(() {
+      _step = MemoryHuntStep.answer;
+      _answerSeconds = _currentTargetSeconds.clamp(15, 60);
+      _levelStartTime = DateTime.now();
+    });
+
+    _stepTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted || _gameFinished) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        if (_answerSeconds > 0) {
+          _answerSeconds--;
+        } else {
+          timer.cancel();
+          _onTimerTimeout();
+        }
+      });
+    });
+  }
+
+  void _onTimerTimeout() {
+    if (_gameFinished || !mounted) return;
+    _cancelStepTimer();
+    setState(() {
+      _gameFinished = true;
+    });
+
+    final targetIds = _currentLevelData.targetIds;
+    final correctCount = _selectedIds.where((id) => targetIds.contains(id)).length;
+    final wrongCount = _selectedIds.where((id) => !targetIds.contains(id)).length;
+
+    final metrics = LevelPerformanceMetrics(
+      level: _currentLevel,
+      difficulty: _currentLevel,
+      score: (correctCount / max(1, targetIds.length)) * 100.0,
+      accuracy: (correctCount / max(1, targetIds.length)) * 100.0,
+      correctAnswers: correctCount,
+      wrongAnswers: wrongCount,
+      totalTasks: targetIds.length,
+      completionTime: _currentTargetSeconds.toDouble(),
+      allowedTimerDuration: _currentTargetSeconds.toDouble(),
+      remainingTime: 0.0,
+      timeUtilization: 1.0,
+      attempts: 1,
+      isSuccess: false,
+      isTimeout: true,
+    );
+
+    if (_adaptiveSession != null) {
+      CognitiveAdaptiveEngine.instance.recordLevelCompleted(
+        session: _adaptiveSession!,
+        levelMetrics: metrics,
+        maxLevels: 5,
+      );
     }
+
+    _showTimeoutDialog();
   }
 
   String _getDefaultVoiceGuidance() {
@@ -96,7 +207,7 @@ class _MemoryHuntScreenState extends State<MemoryHuntScreen> {
       case MemoryHuntStep.answer:
         return context.loc.selectObjectsGuidance(
           _currentLevelData.targetCount,
-          _hintsRemaining,
+          0,
         );
     }
   }
@@ -133,103 +244,204 @@ class _MemoryHuntScreenState extends State<MemoryHuntScreen> {
     );
   }
 
-  void _onHintPressed() {
-    if (_hintsRemaining > 0) {
-      setState(() {
-        _hintsUsed++;
-      });
-      final hintIndex = _hintsUsed - 1;
-      final hintText = _currentLevelData.getLocalizedHint(context, hintIndex);
-
-      playVoiceGuidance('${context.loc.hint} $_hintsUsed: $hintText');
-
-      MemoryHuntFeedbackDialog.showHint(
-        context,
-        title: context.loc.hintXOf3(_hintsUsed),
-        message: hintText,
-        onSpeaker: () => playVoiceGuidance('${context.loc.hint} $_hintsUsed: $hintText'),
-      );
-    } else {
-      playVoiceGuidance(context.loc.usedAll3Hints);
-      MemoryHuntFeedbackDialog.showHint(
-        context,
-        title: context.loc.noHintsRemaining,
-        message: context.loc.allHintsUsedForLevel(_currentLevel),
-        onSpeaker: () => playVoiceGuidance(context.loc.usedAll3Hints),
-      );
-    }
-  }
-
   void _onSubmitPressed() {
+    _cancelStepTimer();
     final targetIds = _currentLevelData.targetIds;
     final isCorrect = _selectedIds.length == targetIds.length &&
         _selectedIds.containsAll(targetIds);
 
-    if (isCorrect) {
-      playVoiceGuidance(context.loc.wellDoneGuidance);
-      MemoryHuntFeedbackDialog.showSuccess(
-        context,
-        message: _currentLevel < 5
-            ? context.loc.foundAllLevelObjects(_currentLevelData.targetCount, _currentLevel)
-            : context.loc.foundAllFinalObjects,
-        onSpeaker: () =>
-            playVoiceGuidance(context.loc.wellDoneGuidance),
-        onContinue: _advanceLevel,
+    final now = DateTime.now();
+    final completionTimeSeconds = _levelStartTime != null
+        ? now.difference(_levelStartTime!).inSeconds.toDouble().clamp(1.0, 300.0)
+        : 15.0;
+
+    final correctCount = _selectedIds.where((id) => targetIds.contains(id)).length;
+    final wrongCount = _selectedIds.where((id) => !targetIds.contains(id)).length;
+    final totalTasks = targetIds.length;
+
+    final metrics = LevelPerformanceMetrics(
+      level: _currentLevel,
+      difficulty: _currentLevel,
+      score: (correctCount / max(1, totalTasks)) * 100.0,
+      accuracy: (correctCount / max(1, totalTasks)) * 100.0,
+      correctAnswers: correctCount,
+      wrongAnswers: wrongCount,
+      totalTasks: totalTasks,
+      completionTime: completionTimeSeconds,
+      allowedTimerDuration: _currentTargetSeconds.toDouble(),
+      remainingTime: max(0.0, _currentTargetSeconds.toDouble() - completionTimeSeconds),
+      timeUtilization: (completionTimeSeconds / max(1, _currentTargetSeconds)).clamp(0.0, 1.0),
+      attempts: 1,
+      isSuccess: isCorrect,
+      isTimeout: false,
+    );
+
+    if (_adaptiveSession != null) {
+      final adaptation = CognitiveAdaptiveEngine.instance.recordLevelCompleted(
+        session: _adaptiveSession!,
+        levelMetrics: metrics,
+        maxLevels: 5,
       );
-    } else {
-      // Patient entered a wrong answer
-      if (_hintsRemaining > 0) {
-        // Prompt them to use a hint until the hint limit finishes
-        playVoiceGuidance(context.loc.tryAgainGuidance(_hintsRemaining));
+      _nextAdaptedLevel = adaptation.nextLevel;
+      _nextAdaptedTimer = adaptation.nextTimer.round().clamp(15, 60);
+    }
 
-        MemoryHuntFeedbackDialog.showTryAgainUseHint(
-          context,
-          hintsRemaining: _hintsRemaining,
-          onSpeaker: () => playVoiceGuidance(context.loc.tryAgainGuidance(_hintsRemaining)),
-          onUseHint: () {
-            _onHintPressed();
-          },
-          onTryAgain: () {
-            // Dismiss dialog and let the patient adjust their selections
-          },
-        );
+    if (isCorrect) {
+      if (_currentLevel < 5) {
+        // Auto-advance directly without showing obstructing "Well Done" message
+        _advanceLevel();
       } else {
-        // All 3 hints have been used and patient entered wrong answer
-        final targetLabels = _currentLevelData.getLocalizedTargetLabels(context);
-
-        playVoiceGuidance(
-            context.loc.allHintsFinishedGuidance(targetLabels.join(', ')));
-
-        MemoryHuntFeedbackDialog.showFailure(
+        // Final level completed
+        if (_adaptiveSession != null) {
+          CognitiveAdaptiveEngine.instance.endSession(_adaptiveSession!);
+        }
+        playVoiceGuidance(context.loc.allLevelsCompletedGuidance);
+        MemoryHuntFeedbackDialog.showGameCompleted(
           context,
-          answers: targetLabels,
-          onSpeaker: () => playVoiceGuidance(
-              context.loc.allHintsFinishedGuidance(targetLabels.join(', '))),
-          onRetry: () {
+          onSpeaker: () => playVoiceGuidance(context.loc.allLevelsCompletedGuidance),
+          onPlayAgain: () {
             setState(() {
+              _currentLevel = 1;
               _selectedIds.clear();
-              _hintsUsed = 0;
-              _step = MemoryHuntStep.memorize;
             });
-            _startStepTimer();
+            _startMemorizeStep();
           },
-          onContinue: _advanceLevel,
+          onExit: () {
+            Navigator.of(context).pop();
+          },
         );
       }
+    } else {
+      final targetLabels = _currentLevelData.getLocalizedTargetLabels(context);
+
+      playVoiceGuidance('Wrong Answer! Let\'s try again.');
+
+      MemoryHuntFeedbackDialog.showWrongAnswer(
+        context,
+        answers: targetLabels,
+        onSpeaker: () => playVoiceGuidance('Wrong Answer! The correct objects were: ${targetLabels.join(", ")}'),
+        onBackToGames: () {
+          if (Navigator.canPop(context)) {
+            Navigator.of(context).pop();
+          }
+        },
+        onRetry: () {
+          setState(() {
+            _selectedIds.clear();
+          });
+          _startMemorizeStep();
+        },
+      );
     }
   }
 
+  void _showTimeoutDialog() {
+    const accent = Color(0xFFE53935);
+
+    playVoiceGuidance('Time Out! Time is up. Returning to memory games.');
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 90,
+                height: 90,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.timer_off_rounded,
+                  size: 52,
+                  color: accent,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Time Out!',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: accent,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Time is up for this level.\nLet\'s return to memory games to try again later.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 18,
+                  height: 1.35,
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          actions: [
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  if (Navigator.canPop(context)) {
+                    Navigator.of(context).pop();
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF19D3F3),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                ),
+                child: const Text(
+                  'Back to Games',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _advanceLevel() {
-    if (_currentLevel < 5) {
+    final nextLevel = _nextAdaptedLevel != null
+        ? max(_currentLevel + 1, _nextAdaptedLevel!).clamp(1, 5)
+        : (_currentLevel < 5 ? _currentLevel + 1 : 5);
+
+    if (nextLevel <= 5 && _currentLevel < 5) {
       setState(() {
-        _currentLevel++;
-        _hintsUsed = 0;
+        _currentLevel = nextLevel;
+        if (_nextAdaptedTimer != null) {
+          _currentTargetSeconds = _nextAdaptedTimer!.clamp(15, 60);
+          _memorizeTargetSeconds = (_currentTargetSeconds * 0.5).round().clamp(10, 60);
+        }
         _selectedIds.clear();
-        _step = MemoryHuntStep.memorize;
       });
-      _startStepTimer();
+      _startMemorizeStep();
     } else {
-      // Reached completion of all 5 levels!
+      if (_adaptiveSession != null) {
+        CognitiveAdaptiveEngine.instance.endSession(_adaptiveSession!);
+      }
       playVoiceGuidance(context.loc.allLevelsCompletedGuidance);
 
       MemoryHuntFeedbackDialog.showGameCompleted(
@@ -238,11 +450,9 @@ class _MemoryHuntScreenState extends State<MemoryHuntScreen> {
         onPlayAgain: () {
           setState(() {
             _currentLevel = 1;
-            _hintsUsed = 0;
             _selectedIds.clear();
-            _step = MemoryHuntStep.memorize;
           });
-          _startStepTimer();
+          _startMemorizeStep();
         },
         onExit: () {
           Navigator.of(context).pop();
@@ -252,6 +462,7 @@ class _MemoryHuntScreenState extends State<MemoryHuntScreen> {
   }
 
   void _toggleSelection(String id) {
+    if (_step != MemoryHuntStep.answer || _gameFinished) return;
     setState(() {
       if (_selectedIds.contains(id)) {
         _selectedIds.remove(id);
@@ -259,6 +470,12 @@ class _MemoryHuntScreenState extends State<MemoryHuntScreen> {
         _selectedIds.add(id);
       }
     });
+
+    // Auto-submit when all target objects are found correctly
+    final targetIds = _currentLevelData.targetIds;
+    if (_selectedIds.length == targetIds.length && _selectedIds.containsAll(targetIds)) {
+      _onSubmitPressed();
+    }
   }
 
   @override
@@ -293,6 +510,7 @@ class _MemoryHuntScreenState extends State<MemoryHuntScreen> {
       case MemoryHuntStep.memorize:
         return MemoryHuntMemorizeView(
           level: _currentLevel,
+          seconds: _memorizeSeconds,
           items: _currentLevelData.memorizeItems,
           onSpeaker: () => playVoiceGuidance(
               context.loc.pleaseRememberObjectsCarefully(_currentLevelData.targetCount)),
@@ -305,14 +523,13 @@ class _MemoryHuntScreenState extends State<MemoryHuntScreen> {
         return MemoryHuntAnswerView(
           level: _currentLevel,
           targetCount: _currentLevelData.targetCount,
-          hintsRemaining: _hintsRemaining,
+          seconds: _answerSeconds,
           items: _currentLevelData.answerItems,
           selectedIds: _selectedIds,
           onToggle: _toggleSelection,
-          onHint: _onHintPressed,
           onSubmit: _onSubmitPressed,
           onSpeaker: () => playVoiceGuidance(
-              context.loc.selectObjectsGuidance(_currentLevelData.targetCount, _hintsRemaining)),
+              context.loc.selectObjectsGuidance(_currentLevelData.targetCount, 0)),
         );
     }
   }

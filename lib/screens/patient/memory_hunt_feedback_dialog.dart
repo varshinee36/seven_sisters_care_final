@@ -212,10 +212,10 @@ class MemoryHuntFeedbackDialog {
     );
   }
 
-  /// Displays failure feedback after all hints have been exhausted.
-  static Future<void> showFailure(
+  /// Displays wrong answer feedback with a Back to Games action.
+  static Future<void> showWrongAnswer(
     BuildContext context, {
-    required VoidCallback onContinue,
+    required VoidCallback onBackToGames,
     VoidCallback? onRetry,
     VoidCallback? onSpeaker,
     List<String>? answers,
@@ -255,16 +255,16 @@ class MemoryHuntFeedbackDialog {
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
-                  Icons.favorite_rounded,
+                  Icons.cancel_rounded,
                   size: 56,
                   color: accent,
                 ),
               ),
               const SizedBox(height: 16),
-              Text(
-                context.loc.goodTryExclamation,
+              const Text(
+                'Wrong Answer!',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.bold,
                   color: accent,
@@ -272,7 +272,7 @@ class MemoryHuntFeedbackDialog {
               ),
               const SizedBox(height: 10),
               Text(
-                '${context.loc.allHintsFinishedForLevel}$answersText',
+                'That was not the correct set of objects.$answersText',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 17,
@@ -288,50 +288,24 @@ class MemoryHuntFeedbackDialog {
             Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (onRetry != null) ...[
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(dialogContext).pop();
-                        onRetry();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF7A97FF),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
-                      child: Text(
-                        context.loc.retryLevel,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                ],
                 SizedBox(
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
                     onPressed: () {
                       Navigator.of(dialogContext).pop();
-                      onContinue();
+                      onBackToGames();
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: accent,
+                      backgroundColor: const Color(0xFF19D3F3),
+                      elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
                       ),
                     ),
-                    child: Text(
-                      context.loc.continueText,
-                      style: const TextStyle(
+                    child: const Text(
+                      'Back to Games',
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
@@ -339,6 +313,33 @@ class MemoryHuntFeedbackDialog {
                     ),
                   ),
                 ),
+                if (onRetry != null) ...[
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: OutlinedButton(
+                      onPressed: () {
+                        Navigator.of(dialogContext).pop();
+                        onRetry();
+                      },
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFF7A97FF), width: 2),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
+                      child: const Text(
+                        'Try Again',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF7A97FF),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ],

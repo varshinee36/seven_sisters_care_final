@@ -3,8 +3,10 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../models/cognitive_game_performance.dart';
+import '../services/cognitive_adaptive_engine.dart';
+import '../services/patient_service.dart';
 import 'patient/games_memory_screen.dart';
-import 'patient/memory_hunt_feedback_dialog.dart';
 
 enum GameLevel {
   level1(1),
@@ -264,7 +266,7 @@ class _PairFinderGameState extends State<PairFinderGame> {
   ];
 
   // ============================================================
-  // GAME STATE
+  // GAME STATE & ADAPTIVE SESSION
   // ============================================================
   int _currentLevel = 1;
   int _currentTargetSeconds = 60;
@@ -283,6 +285,10 @@ class _PairFinderGameState extends State<PairFinderGame> {
   final List<int> _reactionGapsMs = [];
   final _PairFinderQLearning _learning = _PairFinderQLearning();
 
+  AdaptiveSessionState? _adaptiveSession;
+  int? _nextAdaptedLevel;
+  int? _nextAdaptedTimer;
+
   Timer? _timer;
 
   int get _levelNumber => _currentLevel;
@@ -292,10 +298,15 @@ class _PairFinderGameState extends State<PairFinderGame> {
       case 1:
         return 2;
       case 2:
-        return 3;
       case 3:
-      default:
+        return 3;
+      case 4:
+      case 5:
+      case 6:
         return 4;
+      case 7:
+      default:
+        return 5;
     }
   }
 
@@ -305,31 +316,58 @@ class _PairFinderGameState extends State<PairFinderGame> {
   @override
   void initState() {
     super.initState();
+    _initAdaptiveSession();
+  }
+
+  Future<void> _initAdaptiveSession() async {
+    int startLevel = 1;
+    double startTimer = 60.0;
+
     if (widget.initialLevel != null) {
       if (widget.initialLevel is GameLevel) {
-        _currentLevel = (widget.initialLevel as GameLevel).levelNumber;
+        startLevel = (widget.initialLevel as GameLevel).levelNumber;
       } else if (widget.initialLevel is int) {
-        _currentLevel = (widget.initialLevel as int).clamp(1, 7);
+        startLevel = (widget.initialLevel as int).clamp(1, 7);
       }
+    } else {
+      final entry = await CognitiveAdaptiveEngine.instance
+          .determineEntryLevelAndTimer(targetGameId: 'pair_finder', maxLevels: 7);
+      startLevel = entry.startingLevel;
+      startTimer = entry.startingTimer;
     }
+
+    _currentLevel = startLevel;
+    final activePatientId = PatientService.instance.currentPatient?.patientId ?? 'patient_001';
+
+    _adaptiveSession = CognitiveAdaptiveEngine.instance.startSession(
+      patientId: activePatientId,
+      gameId: 'pair_finder',
+      gameName: 'Pair Finder',
+      startingLevel: startLevel,
+      startingTimer: startTimer,
+    );
+
     _startNewGame();
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    if (_adaptiveSession != null) {
+      CognitiveAdaptiveEngine.instance.endSession(_adaptiveSession!);
+    }
     super.dispose();
   }
 
   // ============================================================
   // LEVEL CARD ARRANGEMENT
-  // 1. Level 1 -> 2 pairs / 4 cards, directly paired and adjacent.
-  // 2. Level 2 -> 2 pairs / 4 cards, collapsed/opposite positions.
-  // 3. Level 3 -> 3 pairs / 6 cards, directly paired/nearby.
-  // 4. Level 4 -> 3 pairs / 6 cards, collapsed using opposite positions.
-  // 5. Level 5 -> 3 pairs / 6 cards, more collapsed using mixed opposite + diagonal + direct positions.
-  // 6. Level 6 -> 4 pairs / 8 cards, directly paired.
-  // 7. Level 7 -> 4 pairs / 8 cards, collapsed/opposite positions.
+  // 1. Level 1 -> 2 pairs / 4 cards, shuffled.
+  // 2. Level 2 -> 3 pairs / 6 cards, shuffled.
+  // 3. Level 3 -> 3 pairs / 6 cards, more shuffled.
+  // 4. Level 4 -> 4 pairs / 8 cards, little bit shuffled.
+  // 5. Level 5 -> 4 pairs / 8 cards, more shuffled.
+  // 6. Level 6 -> 4 pairs / 8 cards, more shuffled.
+  // 7. Level 7 -> 5 pairs / 10 cards, shuffled.
   // ============================================================
   MemoryCard _createCard(LocalFoodItem item) {
     return MemoryCard(
@@ -349,97 +387,93 @@ class _PairFinderGameState extends State<PairFinderGame> {
     final itemB = selectedItems[1];
     final itemC = selectedItems.length > 2 ? selectedItems[2] : selectedItems[0];
     final itemD = selectedItems.length > 3 ? selectedItems[3] : selectedItems[1];
+    final itemE = selectedItems.length > 4 ? selectedItems[4] : selectedItems[0];
 
     switch (level) {
       case 1:
-        // Level 1: 2 pairs / 4 cards, directly paired and adjacent.
-        // Row 0: [0: A, 1: A], Row 1: [2: B, 3: B]
+        // Level 1: 2 pairs / 4 cards, shuffled (interleaved A, B, A, B)
         return [
           _createCard(itemA),
-          _createCard(itemA),
           _createCard(itemB),
+          _createCard(itemA),
           _createCard(itemB),
         ];
 
       case 2:
-        // Level 2: 3 pairs / 6 cards, directly paired/nearby.
-        // Row 0: [0: A, 1: A], Row 1: [2: B, 3: B], Row 2: [4: C, 5: C]
+        // Level 2: 3 pairs / 6 cards, shuffled (A, B, C, A, B, C)
         return [
           _createCard(itemA),
-          _createCard(itemA),
-          _createCard(itemB),
           _createCard(itemB),
           _createCard(itemC),
+          _createCard(itemA),
+          _createCard(itemB),
           _createCard(itemC),
         ];
 
       case 3:
-        // Level 3: 4 pairs / 8 cards, directly paired.
-        // Rows: [A, A], [B, B], [C, C], [D, D]
+        // Level 3: 3 pairs / 6 cards, more shuffled (A, C, B, B, A, C)
         return [
           _createCard(itemA),
+          _createCard(itemC),
+          _createCard(itemB),
+          _createCard(itemB),
           _createCard(itemA),
-          _createCard(itemB),
-          _createCard(itemB),
           _createCard(itemC),
-          _createCard(itemC),
-          _createCard(itemD),
-          _createCard(itemD),
         ];
 
       case 4:
-        // Level 4: 4 pairs / 8 cards, collapsed/opposite positions.
+        // Level 4: 4 pairs / 8 cards, little bit shuffled (A, A, B, C, B, C, D, D)
         return [
           _createCard(itemA),
-          _createCard(itemB),
-          _createCard(itemC),
-          _createCard(itemD),
-          _createCard(itemD),
-          _createCard(itemC),
-          _createCard(itemB),
           _createCard(itemA),
+          _createCard(itemB),
+          _createCard(itemC),
+          _createCard(itemB),
+          _createCard(itemC),
+          _createCard(itemD),
+          _createCard(itemD),
         ];
 
       case 5:
-        // Level 5: 4 pairs / 8 cards, mixed positions.
+        // Level 5: 4 pairs / 8 cards, more shuffled (A, B, C, D, C, D, A, B)
         return [
           _createCard(itemA),
+          _createCard(itemB),
+          _createCard(itemC),
+          _createCard(itemD),
+          _createCard(itemC),
+          _createCard(itemD),
           _createCard(itemA),
           _createCard(itemB),
-          _createCard(itemC),
-          _createCard(itemC),
-          _createCard(itemB),
-          _createCard(itemD),
-          _createCard(itemD),
         ];
 
       case 6:
-        // Level 6: 4 pairs / 8 cards, directly paired.
-        // Rows: [A, A], [B, B], [C, C], [D, D]
+        // Level 6: 4 pairs / 8 cards, more shuffled (A, D, B, C, C, B, D, A)
         return [
           _createCard(itemA),
+          _createCard(itemD),
+          _createCard(itemB),
+          _createCard(itemC),
+          _createCard(itemC),
+          _createCard(itemB),
+          _createCard(itemD),
           _createCard(itemA),
-          _createCard(itemB),
-          _createCard(itemB),
-          _createCard(itemC),
-          _createCard(itemC),
-          _createCard(itemD),
-          _createCard(itemD),
         ];
 
       case 7:
       default:
-        // Level 7: 4 pairs / 8 cards, collapsed/opposite positions.
-        // Pairs at symmetric opposite ends: (0, 7), (1, 6), (2, 5), (3, 4)
+        // Level 7: 5 pairs / 10 cards, shuffled (A, B, C, D, E, C, A, E, B, D)
         return [
           _createCard(itemA),
           _createCard(itemB),
           _createCard(itemC),
           _createCard(itemD),
-          _createCard(itemD),
+          _createCard(itemE),
           _createCard(itemC),
-          _createCard(itemB),
           _createCard(itemA),
+          _createCard(itemE),
+          _createCard(itemB),
+          _createCard(itemD),
         ];
     }
   }
@@ -463,7 +497,7 @@ class _PairFinderGameState extends State<PairFinderGame> {
     _gameFinished = false;
     _matches = 0;
     _mismatches = 0;
-    _seconds = 0;
+    _seconds = _currentTargetSeconds;
     _lastFlipAt = null;
     _reactionGapsMs.clear();
 
@@ -482,9 +516,25 @@ class _PairFinderGameState extends State<PairFinderGame> {
         return;
       }
       setState(() {
-        _seconds++;
+        if (_seconds > 0) {
+          _seconds--;
+        } else {
+          timer.cancel();
+          _onTimerTimeout();
+        }
       });
     });
+  }
+
+  void _onTimerTimeout() {
+    if (_gameFinished || !mounted) return;
+    _timer?.cancel();
+    setState(() {
+      _gameFinished = true;
+    });
+
+    _recordPerformance();
+    _showTimeoutDialog();
   }
 
   String _getTimeString() {
@@ -588,14 +638,14 @@ class _PairFinderGameState extends State<PairFinderGame> {
 
       if (_matches == _pairCount) {
         // Player correctly matched ALL pairs in the current level!
-        // Never automatically start next level; maintain timer as usual.
+        // Auto-submit on finding all pairs
         setState(() {
           _firstSelectedIndex = null;
           _secondSelectedIndex = null;
           _checking = false;
         });
 
-        _playVoiceGuidance('All pairs matched! Press Submit to confirm.');
+        _onSubmitPressed();
         return;
       }
     }
@@ -628,15 +678,9 @@ class _PairFinderGameState extends State<PairFinderGame> {
 
       if (_currentLevel < 7) {
         _timer?.cancel();
-        _playVoiceGuidance('Well done! Moving to the next level.');
-        MemoryHuntFeedbackDialog.showSuccess(
-          context,
-          message:
-              'You successfully matched all pairs for Level $_currentLevel!',
-          onSpeaker: () =>
-              _playVoiceGuidance('Well done! You remembered correctly.'),
-          onContinue: _advanceLevel,
-        );
+        ScaffoldMessenger.of(context).removeCurrentSnackBar();
+        // Directly auto-advance to next level without obstructing "Well Done" message
+        _advanceLevel();
       } else {
         // Completed Level 7!
         _timer?.cancel();
@@ -653,7 +697,11 @@ class _PairFinderGameState extends State<PairFinderGame> {
   }
 
   void _advanceLevel() {
-    if (_currentLevel < 7) {
+    ScaffoldMessenger.of(context).removeCurrentSnackBar();
+    if (_nextAdaptedLevel != null) {
+      _currentLevel = max(_currentLevel + 1, _nextAdaptedLevel!).clamp(1, 7);
+      _currentTargetSeconds = (_nextAdaptedTimer ?? 60).clamp(15, 60);
+    } else if (_currentLevel < 7) {
       _currentLevel++;
     } else {
       _currentLevel = 1;
@@ -662,10 +710,42 @@ class _PairFinderGameState extends State<PairFinderGame> {
   }
 
   void _recordPerformance() {
-    final elapsed = max(_seconds, 1);
-    final accuracy = _matches / max(_matches + _mismatches, 1);
-    final speed = min(_currentTargetSeconds / elapsed, 1.5) / 1.5;
-    final score = 0.65 * accuracy + 0.35 * speed;
+    final completionTimeSeconds = max(1.0, (_currentTargetSeconds - _seconds).toDouble());
+    final totalTasks = _pairCount;
+    final correctAnswers = _matches;
+    final wrongAnswers = _mismatches;
+    final isSuccess = _allMatched;
+    final isTimeout = _seconds <= 0 && !isSuccess;
+
+    final levelMetrics = LevelPerformanceMetrics(
+      level: _currentLevel,
+      difficulty: _currentLevel,
+      score: (correctAnswers / max(1, correctAnswers + wrongAnswers)) * 100.0,
+      accuracy: (correctAnswers / max(1, totalTasks)) * 100.0,
+      correctAnswers: correctAnswers,
+      wrongAnswers: wrongAnswers,
+      totalTasks: totalTasks,
+      completionTime: completionTimeSeconds,
+      allowedTimerDuration: _currentTargetSeconds.toDouble(),
+      remainingTime: max(0.0, _seconds.toDouble()),
+      timeUtilization: (completionTimeSeconds / max(1, _currentTargetSeconds)).clamp(0.0, 1.0),
+      attempts: 1,
+      isSuccess: isSuccess,
+      isTimeout: isTimeout,
+    );
+
+    if (_adaptiveSession != null) {
+      final adaptation = CognitiveAdaptiveEngine.instance.recordLevelCompleted(
+        session: _adaptiveSession!,
+        levelMetrics: levelMetrics,
+        maxLevels: 7,
+      );
+
+      _nextAdaptedLevel = adaptation.nextLevel;
+      _nextAdaptedTimer = adaptation.nextTimer.round();
+    }
+
+    final score = levelMetrics.score / 100.0;
     final performance = score >= 0.7
         ? 'Good'
         : score >= 0.4
@@ -820,6 +900,92 @@ class _PairFinderGameState extends State<PairFinderGame> {
                   ),
                 ),
               ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showTimeoutDialog() {
+    const accent = Color(0xFFE53935);
+
+    _playVoiceGuidance('Time Out! Time is up. Returning to memory games.');
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 90,
+                height: 90,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.timer_off_rounded,
+                  size: 52,
+                  color: accent,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Time Out!',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: accent,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Time is up for this level.\nLet\'s return to memory games to try again later.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 18,
+                  height: 1.35,
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          actions: [
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  _navigateToMemoryGames();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF19D3F3),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                ),
+                child: const Text(
+                  'Back to Games',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
             ),
           ],
         );

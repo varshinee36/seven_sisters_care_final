@@ -49,6 +49,7 @@ class PatientService extends ChangeNotifier {
   String? _error;
 
   RegisteredPatient? get patient => _patient;
+  RegisteredPatient? get currentPatient => _patient;
   bool get isLoading => _isLoading;
   String? get error => _error;
 

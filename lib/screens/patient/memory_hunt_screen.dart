@@ -6,7 +6,24 @@ import 'package:flutter/material.dart';
 import '../../localization/app_localizations.dart';
 import '../../models/cognitive_game_performance.dart';
 import '../../services/cognitive_adaptive_engine.dart';
+<<<<<<< HEAD
 import '../../services/patient_service.dart';
+=======
+import 'memory_hunt_answer_view.dart';
+import 'memory_hunt_data.dart';
+import 'memory_hunt_feedback_dialog.dart';
+import 'memory_hunt_memorize_view.dart';
+import 'memory_hunt_ready_view.dart';
+
+import 'dart:async';
+import 'dart:math';
+
+import 'package:flutter/material.dart';
+
+import '../../localization/app_localizations.dart';
+import '../../models/cognitive_game_performance.dart';
+import '../../services/cognitive_adaptive_engine.dart';
+>>>>>>> 21743ce (daily activities fix)
 import 'memory_hunt_answer_view.dart';
 import 'memory_hunt_data.dart';
 import 'memory_hunt_feedback_dialog.dart';
@@ -61,10 +78,15 @@ class _MemoryHuntScreenState extends State<MemoryHuntScreen> {
     _currentTargetSeconds = entry.startingTimer.round().clamp(15, 60);
     _memorizeTargetSeconds = (_currentTargetSeconds * 0.5).round().clamp(10, 60);
 
+<<<<<<< HEAD
     final activePatientId = PatientService.instance.currentPatient?.patientId ?? 'patient_001';
 
     _adaptiveSession = CognitiveAdaptiveEngine.instance.startSession(
       patientId: activePatientId,
+=======
+    _adaptiveSession = CognitiveAdaptiveEngine.instance.startSession(
+      patientId: 'patient_001',
+>>>>>>> 21743ce (daily activities fix)
       gameId: 'memory_hunt',
       gameName: 'Memory Hunt',
       startingLevel: _currentLevel,

@@ -92,7 +92,7 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
     final settings = AppSettingsService.instance;
     LanguageProvider? languageProvider;
     try {
-      languageProvider = Provider.of<LanguageProvider?>(context, listen: true);
+      languageProvider = Provider.of<LanguageProvider>(context, listen: true);
     } catch (_) {
       languageProvider = null;
     }

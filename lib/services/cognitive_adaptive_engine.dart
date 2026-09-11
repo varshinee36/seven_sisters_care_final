@@ -3,7 +3,10 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/cognitive_game_performance.dart';
+<<<<<<< HEAD
 import 'analytics_service.dart';
+=======
+>>>>>>> 21743ce (daily activities fix)
 
 /// Lightweight Q-Learning Reinforcement Learning (RL) AI Adaptive Engine
 /// for Cognitive Games in Seven Sisters Care.
@@ -106,7 +109,11 @@ class CognitiveAdaptiveEngine {
       final prefs = await SharedPreferences.getInstance();
       final lastGameId = prefs.getString(_keyLastPlayedGame);
       if (lastGameId != null && lastGameId.isNotEmpty) {
+<<<<<<< HEAD
         return await getGamePerformanceRecord(lastGameId);
+=======
+        return getGamePerformanceRecord(lastGameId);
+>>>>>>> 21743ce (daily activities fix)
       }
     } catch (e) {
       debugPrint('Error retrieving last played game record: $e');
@@ -343,7 +350,11 @@ class CognitiveAdaptiveEngine {
   }
 
   /// Concludes the session, calculates cumulative final performance,
+<<<<<<< HEAD
   /// saves particular-game record locally, and dispatches to MongoDB via AnalyticsService.
+=======
+  /// saves particular-game record, and updates dashboard.
+>>>>>>> 21743ce (daily activities fix)
   Future<GamePerformanceRecord> endSession(AdaptiveSessionState session) async {
     final finalScore = session.cumulativePerformance.cumulativeScore.clamp(0.0, 100.0);
     final finalLevel = session.currentLevel;
@@ -360,6 +371,7 @@ class CognitiveAdaptiveEngine {
     );
 
     await saveGamePerformanceRecord(record);
+<<<<<<< HEAD
 
     // Save into MongoDB Atlas via FastAPI AnalyticsService
     final mongoPayload = {
@@ -419,4 +431,8 @@ class CognitiveAdaptiveEngine {
         return 'Low Performance';
     }
   }
+=======
+    return record;
+  }
+>>>>>>> 21743ce (daily activities fix)
 }

@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../localization/app_localizations.dart';
+import 'activities/reading_activity_screen.dart';
+import 'activities/family_recognition_activity_screen.dart';
+import 'activities/music_activity_screen.dart';
+import 'activities/daily_routine_recall_activity_screen.dart';
 
 class ActivitesScreen extends StatefulWidget {
   const ActivitesScreen({super.key});
@@ -9,72 +13,10 @@ class ActivitesScreen extends StatefulWidget {
 }
 
 class _ActivitesScreenState extends State<ActivitesScreen> {
-  void _openActivityDialog(
-      String title, String description, Color color, String assetPath) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Icon(Icons.local_activity_rounded, color: color),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(title,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 18)),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.asset(
-                assetPath,
-                height: 100,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  height: 80,
-                  color: color.withValues(alpha: 0.1),
-                  child: Icon(Icons.favorite, size: 40, color: color),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(description,
-                style: const TextStyle(fontSize: 15, height: 1.4)),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(context.loc.close,
-                style: const TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content:
-                      Text("$title ${context.loc.sessionStarted}"),
-                  backgroundColor: color,
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: color,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-            ),
-            child: Text(context.loc.beginActivity,
-                style: const TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+  void _navigateToActivity(Widget targetScreen) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => targetScreen),
     );
   }
 
@@ -181,12 +123,7 @@ class _ActivitesScreenState extends State<ActivitesScreen> {
                           color: const Color(0xFFD4B75B),
                           assetPath: "assets/images/reading.jpg",
                           fallbackIcon: Icons.menu_book_rounded,
-                          onTap: () => _openActivityDialog(
-                            context.loc.readingRecall,
-                            context.loc.readingRecallDesc,
-                            const Color(0xFFD4B75B),
-                            "assets/images/r_eading.jpg",
-                          ),
+                          onTap: () => _navigateToActivity(const ReadingActivityScreen()),
                         ),
 
                         const SizedBox(height: 16),
@@ -197,12 +134,7 @@ class _ActivitesScreenState extends State<ActivitesScreen> {
                           color: const Color(0xFF689E89),
                           assetPath: "assets/images/familypicture.jpg",
                           fallbackIcon: Icons.photo_library_rounded,
-                          onTap: () => _openActivityDialog(
-                            context.loc.familyPictureRecognition,
-                            context.loc.familyPictureRecognitionDesc,
-                            const Color(0xFF689E89),
-                            "assets/images/familyrecognition.jpg",
-                          ),
+                          onTap: () => _navigateToActivity(const FamilyRecognitionActivityScreen()),
                         ),
 
                         const SizedBox(height: 16),
@@ -213,12 +145,7 @@ class _ActivitesScreenState extends State<ActivitesScreen> {
                           color: const Color(0xFFD0456E),
                           assetPath: "assets/images/music.jpg",
                           fallbackIcon: Icons.music_note_rounded,
-                          onTap: () => _openActivityDialog(
-                            context.loc.musicSingingMemory,
-                            context.loc.musicSingingMemoryDesc,
-                            const Color(0xFFD0456E),
-                            "assets/images/m_usic.jpg",
-                          ),
+                          onTap: () => _navigateToActivity(const MusicActivityScreen()),
                         ),
 
                         const SizedBox(height: 16),
@@ -229,12 +156,7 @@ class _ActivitesScreenState extends State<ActivitesScreen> {
                           color: const Color(0xFF728DF5),
                           assetPath: "assets/images/dailyroutinerecall.jpg",
                           fallbackIcon: Icons.event_repeat_rounded,
-                          onTap: () => _openActivityDialog(
-                            context.loc.dailyRoutineRecallTitle,
-                            context.loc.dailyRoutineRecallDesc,
-                            const Color(0xFF728DF5),
-                            "assets/images/dailyroutinerecall.jpg",
-                          ),
+                          onTap: () => _navigateToActivity(const DailyRoutineRecallActivityScreen()),
                         ),
 
                         const SizedBox(height: 16),
@@ -306,7 +228,7 @@ class _ActivitesScreenState extends State<ActivitesScreen> {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(22),
-        child: Container(
+        child: Ink(
           width: double.infinity,
           height: 110,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -362,14 +284,18 @@ class _ActivitesScreenState extends State<ActivitesScreen> {
                   icon:
                       const Icon(Icons.volume_up, color: Colors.white, size: 26),
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                            "${context.loc.voiceGuideFor} ${title.replaceAll('\n', ' ')}"),
-                        duration: const Duration(seconds: 1),
-                        backgroundColor: color,
-                      ),
-                    );
+                    final scaffoldMessenger = ScaffoldMessenger.maybeOf(context);
+                    if (scaffoldMessenger != null) {
+                      scaffoldMessenger.clearSnackBars();
+                      scaffoldMessenger.showSnackBar(
+                        SnackBar(
+                          content: Text(
+                              "${context.loc.voiceGuideFor} ${title.replaceAll('\n', ' ')}"),
+                          duration: const Duration(seconds: 1),
+                          backgroundColor: color,
+                        ),
+                      );
+                    }
                   },
                 ),
               ),

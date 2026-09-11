@@ -326,6 +326,132 @@ class AppLocalizations {
   String get dailyRoutineRecall => translate('dailyRoutineRecall');
   String get dailyRoutineRecallTitle => translate('dailyRoutineRecallTitle');
   String get dailyRoutineRecallDesc => translate('dailyRoutineRecallDesc');
+
+  // Reading Activity Detail
+  String get readingActivityTitle => translate('readingActivityTitle');
+  String get readingActivitySubtitle => translate('readingActivitySubtitle');
+  String get answerQuestions => translate('answerQuestions');
+  String get backToStory => translate('backToStory');
+  String get backToActivities => translate('backToActivities');
+  String get previous => translate('previous');
+  String get nextQuestion => translate('nextQuestion');
+  String get activityCompleted => translate('activityCompleted');
+  String get yourScore => translate('yourScore');
+  String readingScoreCorrect(int score, int total) =>
+      translate('readingScoreCorrect')
+          .replaceAll('{score}', '$score')
+          .replaceAll('{total}', '$total');
+  String get readingPerfectFeedback => translate('readingPerfectFeedback');
+  String get readingGoodFeedback => translate('readingGoodFeedback');
+  String get readStoryAgain => translate('readStoryAgain');
+  String storyNumber(int number) =>
+      translate('storyNumber').replaceAll('{number}', '$number');
+  String storyTitleLabel(String title, String content) =>
+      translate('storyTitleLabel')
+          .replaceAll('{title}', title)
+          .replaceAll('{content}', content);
+  String questionVoiceLabel(int number, String question) =>
+      translate('questionVoiceLabel')
+          .replaceAll('{number}', '$number')
+          .replaceAll('{question}', question);
+
+  // Music Activity Detail
+  String get listeningToMusic => translate('listeningToMusic');
+  String get northEastFolkMelodies => translate('northEastFolkMelodies');
+  String get musicVoiceGuidance => translate('musicVoiceGuidance');
+  String playingTrack(String title) =>
+      translate('playingTrack').replaceAll('{title}', title);
+  String get playlistNERHeader => translate('playlistNERHeader');
+
+  // Family Recognition Detail
+  String get familyRecognition => translate('familyRecognition');
+  String get familyRecognitionSubtitle => translate('familyRecognitionSubtitle');
+  String get listenVoiceQuestion => translate('listenVoiceQuestion');
+  String get familyVoicePrompt1 => translate('familyVoicePrompt1');
+  String get familyVoicePrompt2 => translate('familyVoicePrompt2');
+  String get tapCorrectFamilyPhoto => translate('tapCorrectFamilyPhoto');
+  String get voiceInput => translate('voiceInput');
+  String get familyVoiceInputPrompt => translate('familyVoiceInputPrompt');
+  String get correctIdentification => translate('correctIdentification');
+  String get closeAttempt => translate('closeAttempt');
+  String familyCorrectFeedback(String name, String relationship) =>
+      translate('familyCorrectFeedback')
+          .replaceAll('{name}', name)
+          .replaceAll('{relationship}', relationship);
+  String familyWrongFeedback(
+          String selectedName,
+          String selectedRelationship,
+          String correctName,
+          String correctRelationship) =>
+      translate('familyWrongFeedback')
+          .replaceAll('{selectedName}', selectedName)
+          .replaceAll('{selectedRelationship}', selectedRelationship)
+          .replaceAll('{correctName}', correctName)
+          .replaceAll('{correctRelationship}', correctRelationship);
+  String get seeFinalScore => translate('seeFinalScore');
+  String get familyRecognitionComplete => translate('familyRecognitionComplete');
+  String familyScoreText(int score, int total) =>
+      translate('familyScoreText')
+          .replaceAll('{score}', '$score')
+          .replaceAll('{total}', '$total');
+  String get familySummaryDesc => translate('familySummaryDesc');
+  String get relationshipGrandmother => translate('relationshipGrandmother');
+
+  // Emotion Recognition Detail
+  String get emotionRecognition => translate('emotionRecognition');
+  String get emotionRecognitionSubtitle => translate('emotionRecognitionSubtitle');
+  String emotionPromptHeader(int current, int total) =>
+      translate('emotionPromptHeader')
+          .replaceAll('{current}', '$current')
+          .replaceAll('{total}', '$total');
+  String get howPersonFeeling => translate('howPersonFeeling');
+  String get identifyEmotionByVoice => translate('identifyEmotionByVoice');
+  String get speakAnswer => translate('speakAnswer');
+  String get greatJob => translate('greatJob');
+  String get niceTry => translate('niceTry');
+  String emotionCorrectFeedback(String emotion, String desc) =>
+      translate('emotionCorrectFeedback')
+          .replaceAll('{emotion}', emotion)
+          .replaceAll('{desc}', desc);
+  String emotionWrongFeedback(
+          String answeredEmotion, String correctEmotion, String desc) =>
+      translate('emotionWrongFeedback')
+          .replaceAll('{answeredEmotion}', answeredEmotion)
+          .replaceAll('{correctEmotion}', correctEmotion)
+          .replaceAll('{desc}', desc);
+  String get nextPhoto => translate('nextPhoto');
+  String get viewScore => translate('viewScore');
+  String get emotionRecognitionComplete => translate('emotionRecognitionComplete');
+  String get emotionSummaryDesc => translate('emotionSummaryDesc');
+  String get emotionHappy => translate('emotionHappy');
+  String get emotionSad => translate('emotionSad');
+  String get emotionCalm => translate('emotionCalm');
+  String get emotionSurprised => translate('emotionSurprised');
+  String get emotionAngry => translate('emotionAngry');
+  String get emotionHappyDesc => translate('emotionHappyDesc');
+  String get emotionSadDesc => translate('emotionSadDesc');
+  String get emotionCalmDesc => translate('emotionCalmDesc');
+
+  // Daily Routine Recall Detail
+  String get dailyRoutineRecallSubtitle => translate('dailyRoutineRecallSubtitle');
+  String get dailyRoutineInstruction => translate('dailyRoutineInstruction');
+  String get dailyRoutineTapOrder => translate('dailyRoutineTapOrder');
+  String get resetSelection => translate('resetSelection');
+  String get checkSequence => translate('checkSequence');
+  String selectCountOfFour(int count) =>
+      translate('selectCountOfFour').replaceAll('{count}', '$count');
+  String get selectFourPrompt => translate('selectFourPrompt');
+  String get routineResult => translate('routineResult');
+  String routineScoreDesc(int score) =>
+      translate('routineScoreDesc').replaceAll('{score}', '$score');
+  String get yourSequence => translate('yourSequence');
+  String shouldBe(String title) =>
+      translate('shouldBe').replaceAll('{title}', title);
+  String get tryShuffledAgain => translate('tryShuffledAgain');
+  String get routine1Title => translate('routine1Title');
+  String get routine2Title => translate('routine2Title');
+  String get routine3Title => translate('routine3Title');
+  String get routine4Title => translate('routine4Title');
 }
 
 class _AppLocalizationsDelegate

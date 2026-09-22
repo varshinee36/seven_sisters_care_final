@@ -17,7 +17,7 @@ enum AdaptiveAction {
   decreaseDifficultyIncreaseTimer,
 }
 
-/// Performance metrics collected for an individual level (without hints).
+/// Performance metrics collected for an individual level (including dynamic hints).
 class LevelPerformanceMetrics {
   final int level;
   final int difficulty;
@@ -33,6 +33,9 @@ class LevelPerformanceMetrics {
   final int attempts;
   final bool isSuccess;
   final bool isTimeout;
+  final bool hintUsed;
+  final int hintCount;
+  final bool completedWithHint;
 
   const LevelPerformanceMetrics({
     required this.level,
@@ -49,6 +52,9 @@ class LevelPerformanceMetrics {
     required this.attempts,
     required this.isSuccess,
     required this.isTimeout,
+    this.hintUsed = false,
+    this.hintCount = 0,
+    this.completedWithHint = false,
   });
 
   Map<String, dynamic> toJson() => {
@@ -66,6 +72,9 @@ class LevelPerformanceMetrics {
         'attempts': attempts,
         'isSuccess': isSuccess,
         'isTimeout': isTimeout,
+        'hintUsed': hintUsed,
+        'hintCount': hintCount,
+        'completedWithHint': completedWithHint,
       };
 
   factory LevelPerformanceMetrics.fromJson(Map<String, dynamic> json) {
@@ -84,6 +93,9 @@ class LevelPerformanceMetrics {
       attempts: json['attempts'] as int,
       isSuccess: json['isSuccess'] as bool,
       isTimeout: json['isTimeout'] as bool,
+      hintUsed: (json['hintUsed'] as bool?) ?? false,
+      hintCount: (json['hintCount'] as int?) ?? 0,
+      completedWithHint: (json['completedWithHint'] as bool?) ?? false,
     );
   }
 }
@@ -100,6 +112,9 @@ class CumulativePerformance {
   int successfulLevels = 0;
   int failedLevels = 0;
   int timeoutLevels = 0;
+  int totalHintsUsed = 0;
+  int levelsWithHints = 0;
+  int completedWithHints = 0;
 
   CumulativePerformance();
 
@@ -118,6 +133,13 @@ class CumulativePerformance {
     }
     if (metrics.isTimeout) {
       timeoutLevels++;
+    }
+    if (metrics.hintUsed) {
+      totalHintsUsed += metrics.hintCount > 0 ? metrics.hintCount : 1;
+      levelsWithHints++;
+    }
+    if (metrics.completedWithHint) {
+      completedWithHints++;
     }
   }
 
@@ -176,6 +198,9 @@ class CumulativePerformance {
         'successfulLevels': successfulLevels,
         'failedLevels': failedLevels,
         'timeoutLevels': timeoutLevels,
+        'totalHintsUsed': totalHintsUsed,
+        'levelsWithHints': levelsWithHints,
+        'completedWithHints': completedWithHints,
         'cumulativeAccuracy': cumulativeAccuracy,
         'cumulativeScore': cumulativeScore,
       };
@@ -190,6 +215,8 @@ class GamePerformanceRecord {
   final int finalLevelReached;
   final double lastTimerValue; // seconds
   final DateTime timestamp;
+  final bool hintUsed;
+  final int totalHintsUsed;
 
   const GamePerformanceRecord({
     required this.patientId,
@@ -199,6 +226,8 @@ class GamePerformanceRecord {
     required this.finalLevelReached,
     required this.lastTimerValue,
     required this.timestamp,
+    this.hintUsed = false,
+    this.totalHintsUsed = 0,
   });
 
   Map<String, dynamic> toJson() => {
@@ -209,6 +238,8 @@ class GamePerformanceRecord {
         'finalLevelReached': finalLevelReached,
         'lastTimerValue': lastTimerValue,
         'timestamp': timestamp.toIso8601String(),
+        'hintUsed': hintUsed,
+        'totalHintsUsed': totalHintsUsed,
       };
 
   factory GamePerformanceRecord.fromJson(Map<String, dynamic> json) {
@@ -220,6 +251,8 @@ class GamePerformanceRecord {
       finalLevelReached: json['finalLevelReached'] as int,
       lastTimerValue: (json['lastTimerValue'] as num).toDouble(),
       timestamp: DateTime.parse(json['timestamp'] as String),
+      hintUsed: (json['hintUsed'] as bool?) ?? false,
+      totalHintsUsed: (json['totalHintsUsed'] as int?) ?? 0,
     );
   }
 

@@ -234,5 +234,79 @@ void main() {
       expect(record.finalPerformanceScore, greaterThan(0.0));
       expect(CognitiveAdaptiveEngine.latestPerformanceRecords.value.isNotEmpty, true);
     });
+
+    test('RL computeReward differentiates Case A (completed with hint) from Case B (failed with hint)', () {
+      final engine = CognitiveAdaptiveEngine.instance;
+
+      // Case A: Patient used hint and succeeded with high accuracy
+      const caseA = LevelPerformanceMetrics(
+        level: 2,
+        difficulty: 2,
+        score: 100.0,
+        accuracy: 100.0,
+        correctAnswers: 3,
+        wrongAnswers: 0,
+        totalTasks: 3,
+        completionTime: 25.0,
+        allowedTimerDuration: 60.0,
+        remainingTime: 35.0,
+        timeUtilization: 25.0 / 60.0,
+        attempts: 2,
+        isSuccess: true,
+        isTimeout: false,
+        hintUsed: true,
+        hintCount: 1,
+        completedWithHint: true,
+      );
+
+      // Case B: Patient used hint but timed out
+      const caseB = LevelPerformanceMetrics(
+        level: 2,
+        difficulty: 2,
+        score: 33.3,
+        accuracy: 33.3,
+        correctAnswers: 1,
+        wrongAnswers: 2,
+        totalTasks: 3,
+        completionTime: 60.0,
+        allowedTimerDuration: 60.0,
+        remainingTime: 0.0,
+        timeUtilization: 1.0,
+        attempts: 2,
+        isSuccess: false,
+        isTimeout: true,
+        hintUsed: true,
+        hintCount: 1,
+        completedWithHint: false,
+      );
+
+      // Normal unassisted success
+      const normalSuccess = LevelPerformanceMetrics(
+        level: 2,
+        difficulty: 2,
+        score: 100.0,
+        accuracy: 100.0,
+        correctAnswers: 3,
+        wrongAnswers: 0,
+        totalTasks: 3,
+        completionTime: 25.0,
+        allowedTimerDuration: 60.0,
+        remainingTime: 35.0,
+        timeUtilization: 25.0 / 60.0,
+        attempts: 1,
+        isSuccess: true,
+        isTimeout: false,
+        hintUsed: false,
+      );
+
+      final rewardA = engine.computeReward(caseA, AdaptiveAction.maintainDifficultyMaintainTimer);
+      final rewardB = engine.computeReward(caseB, AdaptiveAction.decreaseDifficultyIncreaseTimer);
+      final rewardNormal = engine.computeReward(normalSuccess, AdaptiveAction.maintainDifficultyMaintainTimer);
+
+      expect(rewardA, 0.7); // Positive reward acknowledging assisted success
+      expect(rewardB, -0.6); // Less harsh penalty than unassisted failure (-0.8)
+      expect(rewardNormal, 1.0); // Full reward for unassisted high performance
+      expect(rewardA, greaterThan(rewardB));
+    });
   });
 }

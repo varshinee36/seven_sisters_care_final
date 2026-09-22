@@ -138,5 +138,71 @@ void main() {
       expect(find.text('Level 2 of 5'), findsOneWidget);
       expect(find.text('Please remember these 5 objects'), findsOneWidget);
     });
+
+    testWidgets('Single error does not trigger hint immediately',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: MemoryHuntScreen(),
+        ),
+      );
+      await tester.pump();
+
+      // Fast-forward memorization timer + ready step
+      await tester.pump(const Duration(seconds: 31));
+      await tester.pump(const Duration(seconds: 7));
+      await tester.pump(const Duration(milliseconds: 200));
+
+      final dynamic state = tester.state(find.byType(MemoryHuntScreen));
+      expect(state.hintUsedInLevel, isFalse);
+      expect(state.activeHintText, isNull);
+
+      // Select 1 wrong item (Dog)
+      await tester.tap(find.text('Dog'), warnIfMissed: false);
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // Hint is still NOT shown after single selection change
+      expect(state.hintUsedInLevel, isFalse);
+    });
+
+    testWidgets('Persistent struggle triggers dynamic contextual hint without revealing answer',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: MemoryHuntScreen(),
+        ),
+      );
+      await tester.pump();
+
+      // Fast-forward memorization timer + ready step
+      await tester.pump(const Duration(seconds: 31));
+      await tester.pump(const Duration(seconds: 7));
+      await tester.pump(const Duration(milliseconds: 200));
+
+      final dynamic state = tester.state(find.byType(MemoryHuntScreen));
+      expect(state.hintUsedInLevel, isFalse);
+
+      // Fast-forward answer timer past kMemoryHuntHintTriggerSeconds (20s)
+      await tester.pump(const Duration(seconds: 21));
+
+      // Hint is now triggered
+      expect(state.hintUsedInLevel, isTrue);
+      expect(state.hintCountInLevel, greaterThanOrEqualTo(1));
+      expect(state.activeHintText, isNotNull);
+
+      // Contextual hint banner is displayed in the UI
+      expect(find.byIcon(Icons.lightbulb_rounded), findsOneWidget);
+
+      // Correct answers (Apple, Book, Ball) are still clickable by the patient
+      await tester.tap(find.text('Apple'));
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(find.text('Book'));
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(find.text('Ball'));
+      await tester.pump(const Duration(milliseconds: 500));
+
+      // Successfully advances to level 2 with hint recorded
+      expect(find.text('Level 2 of 5'), findsOneWidget);
+    });
   });
 }

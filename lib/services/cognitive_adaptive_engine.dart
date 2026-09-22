@@ -319,11 +319,28 @@ class CognitiveAdaptiveEngine {
     AdaptiveAction action,
   ) {
     if (metrics.isTimeout || !metrics.isSuccess) {
+      // CASE B: Patient struggled, hint was shown, but still timed out / failed
+      if (metrics.hintUsed) {
+        return -0.6;
+      }
       return -0.8;
     }
 
     final acc = metrics.accuracy;
     final util = metrics.timeUtilization;
+
+    // CASE A: Patient struggled, hint was shown, and patient successfully completed
+    if (metrics.hintUsed) {
+      if (acc >= 85.0 && util <= 0.85) {
+        return 0.7;
+      } else if (acc >= 70.0) {
+        return 0.5;
+      } else if (acc >= 50.0) {
+        return 0.2;
+      } else {
+        return 0.0;
+      }
+    }
 
     if (acc >= 85.0 && util <= 0.85) {
       return 1.0;
@@ -559,6 +576,8 @@ class CognitiveAdaptiveEngine {
       finalLevelReached: finalLevel,
       lastTimerValue: lastTimer,
       timestamp: DateTime.now(),
+      hintUsed: session.cumulativePerformance.totalHintsUsed > 0,
+      totalHintsUsed: session.cumulativePerformance.totalHintsUsed,
     );
 
     await saveGamePerformanceRecord(record);
@@ -593,6 +612,9 @@ class CognitiveAdaptiveEngine {
           _formatPerformanceState(
         session.cumulativePerformance.performanceState,
       ),
+      'hint_used': session.cumulativePerformance.totalHintsUsed > 0,
+      'total_hints_used': session.cumulativePerformance.totalHintsUsed,
+      'completed_with_hints': session.cumulativePerformance.completedWithHints,
       'timestamp':
           DateTime.now().toUtc().toIso8601String(),
     };

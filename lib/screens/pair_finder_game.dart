@@ -163,6 +163,85 @@ class LocalFoodItem {
   });
 }
 
+class _PulsingHintCard extends StatefulWidget {
+  final Widget child;
+  final bool isBlinking;
+
+  const _PulsingHintCard({
+    required this.child,
+    required this.isBlinking,
+  });
+
+  @override
+  State<_PulsingHintCard> createState() => _PulsingHintCardState();
+}
+
+class _PulsingHintCardState extends State<_PulsingHintCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 550),
+    );
+    _animation = Tween<double>(begin: 0.25, end: 0.90).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+    if (widget.isBlinking) {
+      _controller.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _PulsingHintCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isBlinking != oldWidget.isBlinking) {
+      if (widget.isBlinking) {
+        _controller.repeat(reverse: true);
+      } else {
+        _controller.stop();
+        _controller.reset();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.isBlinking) {
+      return widget.child;
+    }
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFFFB82E).withValues(alpha: _animation.value),
+                blurRadius: 14,
+                spreadRadius: 3.5,
+              ),
+            ],
+          ),
+          child: child,
+        );
+      },
+      child: widget.child,
+    );
+  }
+}
+
 class MemoryCard {
   final int id;
   final String name;
@@ -268,6 +347,11 @@ class _PairFinderGameState extends State<PairFinderGame> {
   // ============================================================
   // GAME STATE & ADAPTIVE SESSION
   // ============================================================
+  // Configurable dynamic hint thresholds
+  static const int kPairFinderHintTriggerSeconds = 15;
+  static const int kPairFinderHintTriggerMismatches = 3;
+  static const Duration kPairFinderHintDisplayDuration = Duration(seconds: 3);
+
   int _currentLevel = 1;
   int _currentTargetSeconds = 60;
   late List<MemoryCard> _cards;
@@ -279,6 +363,13 @@ class _PairFinderGameState extends State<PairFinderGame> {
   bool _gameFinished = false;
   int _matches = 0;
   int _mismatches = 0;
+  int _mismatchesSinceLastMatch = 0;
+  int _secondsSinceLastMatch = 0;
+  Set<int> _blinkingCardIndices = {};
+  bool _hintUsedInLevel = false;
+  int _hintCountInLevel = 0;
+  Timer? _hintBlinkTimer;
+
   int _seconds = 0;
   int _consecutivePoorRounds = 0;
   DateTime? _lastFlipAt;
@@ -353,6 +444,7 @@ class _PairFinderGameState extends State<PairFinderGame> {
   @override
   void dispose() {
     _timer?.cancel();
+    _hintBlinkTimer?.cancel();
     if (_adaptiveSession != null) {
       CognitiveAdaptiveEngine.instance.endSession(_adaptiveSession!);
     }
@@ -483,6 +575,7 @@ class _PairFinderGameState extends State<PairFinderGame> {
   // ============================================================
   void _startNewGame() {
     _timer?.cancel();
+    _hintBlinkTimer?.cancel();
 
     // Pick _pairCount distinct items from the authentic food pool
     final shuffledPool = List<LocalFoodItem>.from(_foodPool)..shuffle(_random);
@@ -497,6 +590,11 @@ class _PairFinderGameState extends State<PairFinderGame> {
     _gameFinished = false;
     _matches = 0;
     _mismatches = 0;
+    _mismatchesSinceLastMatch = 0;
+    _secondsSinceLastMatch = 0;
+    _blinkingCardIndices = {};
+    _hintUsedInLevel = false;
+    _hintCountInLevel = 0;
     _seconds = _currentTargetSeconds;
     _lastFlipAt = null;
     _reactionGapsMs.clear();
@@ -518,11 +616,62 @@ class _PairFinderGameState extends State<PairFinderGame> {
       setState(() {
         if (_seconds > 0) {
           _seconds--;
+          _secondsSinceLastMatch++;
+
+          // Dynamic hint struggle trigger on prolonged time or timer low:
+          if (!_allMatched &&
+              _blinkingCardIndices.isEmpty &&
+              (_secondsSinceLastMatch >= kPairFinderHintTriggerSeconds ||
+                  _mismatchesSinceLastMatch >= kPairFinderHintTriggerMismatches ||
+                  _seconds <= 15)) {
+            _triggerDynamicHint();
+          }
         } else {
           timer.cancel();
           _onTimerTimeout();
         }
       });
+    });
+  }
+
+  void _triggerDynamicHint() {
+    if (_gameFinished || _allMatched || !mounted || _blinkingCardIndices.isNotEmpty) {
+      return;
+    }
+
+    final Map<int, List<int>> unmatchedById = {};
+    for (int i = 0; i < _cards.length; i++) {
+      if (!_cards[i].matched) {
+        unmatchedById.putIfAbsent(_cards[i].id, () => []).add(i);
+      }
+    }
+
+    if (unmatchedById.isEmpty) return;
+
+    final pairIndices = unmatchedById.values.firstWhere(
+      (list) => list.length >= 2,
+      orElse: () => [],
+    );
+
+    if (pairIndices.length < 2) return;
+
+    setState(() {
+      _blinkingCardIndices = {pairIndices[0], pairIndices[1]};
+      _hintUsedInLevel = true;
+      _hintCountInLevel++;
+      _mismatchesSinceLastMatch = 0;
+      _secondsSinceLastMatch = 0;
+    });
+
+    _playVoiceGuidance('Gentle Clue: Watch for the blinking cards to find a match!');
+
+    _hintBlinkTimer?.cancel();
+    _hintBlinkTimer = Timer(kPairFinderHintDisplayDuration, () {
+      if (mounted) {
+        setState(() {
+          _blinkingCardIndices = {};
+        });
+      }
     });
   }
 
@@ -634,6 +783,10 @@ class _PairFinderGameState extends State<PairFinderGame> {
         firstCard.revealed = true;
         secondCard.revealed = true;
         _matches++;
+        _mismatchesSinceLastMatch = 0;
+        _secondsSinceLastMatch = 0;
+        _blinkingCardIndices.remove(_firstSelectedIndex);
+        _blinkingCardIndices.remove(_secondSelectedIndex);
       });
 
       if (_matches == _pairCount) {
@@ -655,7 +808,13 @@ class _PairFinderGameState extends State<PairFinderGame> {
         firstCard.revealed = false;
         secondCard.revealed = false;
         _mismatches++;
+        _mismatchesSinceLastMatch++;
       });
+
+      if (_mismatchesSinceLastMatch >= kPairFinderHintTriggerMismatches &&
+          _blinkingCardIndices.isEmpty) {
+        _triggerDynamicHint();
+      }
     }
 
     if (mounted) {
@@ -732,6 +891,9 @@ class _PairFinderGameState extends State<PairFinderGame> {
       attempts: 1,
       isSuccess: isSuccess,
       isTimeout: isTimeout,
+      hintUsed: _hintUsedInLevel,
+      hintCount: _hintCountInLevel,
+      completedWithHint: isSuccess && _hintUsedInLevel,
     );
 
     if (_adaptiveSession != null) {
@@ -1145,6 +1307,18 @@ class _PairFinderGameState extends State<PairFinderGame> {
   List<MemoryCard> get cards => _cards;
 
   @visibleForTesting
+  bool get hintUsedInLevel => _hintUsedInLevel;
+
+  @visibleForTesting
+  int get hintCountInLevel => _hintCountInLevel;
+
+  @visibleForTesting
+  Set<int> get blinkingCardIndices => _blinkingCardIndices;
+
+  @visibleForTesting
+  void simulateTriggerHint() => _triggerDynamicHint();
+
+  @visibleForTesting
   void simulateMatchAll() {
     setState(() {
       for (final card in _cards) {
@@ -1500,8 +1674,9 @@ class _PairFinderGameState extends State<PairFinderGame> {
   // ============================================================
   Widget _buildMemoryCard(int index, MemoryCard card) {
     final bool isFaceUp = card.revealed || card.matched;
+    final bool isBlinking = _blinkingCardIndices.contains(index);
 
-    return GestureDetector(
+    final cardWidget = GestureDetector(
       onTap: () => _handleCardTap(index),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
@@ -1510,17 +1685,21 @@ class _PairFinderGameState extends State<PairFinderGame> {
           color: isFaceUp ? Colors.white : const Color(0xFFE2E4E2),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isFaceUp
-                ? (card.matched
-                      ? const Color(0xFF2E7D5B)
-                      : const Color(0xFFF72585))
-                : const Color(0xFFCACFCB),
-            width: 3.0,
+            color: isBlinking
+                ? const Color(0xFFFFB82E)
+                : (isFaceUp
+                    ? (card.matched
+                        ? const Color(0xFF2E7D5B)
+                        : const Color(0xFFF72585))
+                    : const Color(0xFFCACFCB)),
+            width: isBlinking ? 3.5 : 3.0,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 6,
+              color: isBlinking
+                  ? const Color(0xFFFFB82E).withValues(alpha: 0.35)
+                  : Colors.black.withValues(alpha: 0.08),
+              blurRadius: isBlinking ? 10 : 6,
               offset: const Offset(0, 3),
             ),
           ],
@@ -1538,6 +1717,11 @@ class _PairFinderGameState extends State<PairFinderGame> {
           ),
         ),
       ),
+    );
+
+    return _PulsingHintCard(
+      isBlinking: isBlinking,
+      child: cardWidget,
     );
   }
 

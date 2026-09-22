@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../localization/app_localizations.dart';
 import 'memory_hunt_widgets.dart';
 
-/// Screen 3 — Answer selection (multi-select, evaluation without hints).
+/// Screen 3 — Answer selection (multi-select, with adaptive dynamic hints).
 class MemoryHuntAnswerView extends StatelessWidget {
   final int level;
   final int targetCount;
@@ -13,6 +13,8 @@ class MemoryHuntAnswerView extends StatelessWidget {
   final ValueChanged<String> onToggle;
   final VoidCallback onSubmit;
   final VoidCallback onSpeaker;
+  final String? hintText;
+  final VoidCallback? onHintSpeaker;
 
   const MemoryHuntAnswerView({
     super.key,
@@ -24,6 +26,8 @@ class MemoryHuntAnswerView extends StatelessWidget {
     required this.onToggle,
     required this.onSubmit,
     required this.onSpeaker,
+    this.hintText,
+    this.onHintSpeaker,
   });
 
   @override
@@ -65,6 +69,45 @@ class MemoryHuntAnswerView extends StatelessWidget {
             ],
           ),
         ),
+
+        // Subtle adaptive dynamic hint banner (when struggle detected)
+        if (hintText != null && hintText!.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF8E7),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFFFB82E), width: 1.5),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.lightbulb_rounded, color: Color(0xFFD97706), size: 22),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    hintText!,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF7A4D05),
+                      height: 1.2,
+                    ),
+                  ),
+                ),
+                if (onHintSpeaker != null)
+                  IconButton(
+                    icon: const Icon(Icons.volume_up, color: Color(0xFFD97706), size: 20),
+                    onPressed: onHintSpeaker,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    tooltip: 'Hint voice',
+                  ),
+              ],
+            ),
+          ),
+        ],
 
         const SizedBox(height: 12),
 

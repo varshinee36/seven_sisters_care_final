@@ -12,20 +12,6 @@ import 'memory_hunt_feedback_dialog.dart';
 import 'memory_hunt_memorize_view.dart';
 import 'memory_hunt_ready_view.dart';
 
-import 'dart:async';
-import 'dart:math';
-
-import 'package:flutter/material.dart';
-
-import '../../localization/app_localizations.dart';
-import '../../models/cognitive_game_performance.dart';
-import '../../services/cognitive_adaptive_engine.dart';
-import 'memory_hunt_answer_view.dart';
-import 'memory_hunt_data.dart';
-import 'memory_hunt_feedback_dialog.dart';
-import 'memory_hunt_memorize_view.dart';
-import 'memory_hunt_ready_view.dart';
-
 /// Memory Hunt game flow across 5 progressive levels.
 ///
 /// Flow: Memorize (with 30s countdown timer) → Get Ready (auto 6s) → Answer (with countdown timer max 60s) → Next Level
@@ -39,6 +25,11 @@ class MemoryHuntScreen extends StatefulWidget {
 }
 
 class _MemoryHuntScreenState extends State<MemoryHuntScreen> {
+  // Configurable dynamic hint thresholds
+  static const int kMemoryHuntHintTriggerSeconds = 20;
+  static const int kMemoryHuntHintTriggerAttempts = 2;
+  static const int kMemoryHuntHintDisplayDurationSeconds = 5;
+
   MemoryHuntStep _step = MemoryHuntStep.memorize;
 
   Timer? _stepTimer;
@@ -54,6 +45,13 @@ class _MemoryHuntScreenState extends State<MemoryHuntScreen> {
   int? _nextAdaptedLevel;
   int? _nextAdaptedTimer;
   DateTime? _levelStartTime;
+
+  // Dynamic hint state tracking
+  int _attemptsInLevel = 0;
+  bool _hintUsedInLevel = false;
+  int _hintCountInLevel = 0;
+  bool _hintDisplayed = false;
+  String? _activeHintText;
 
   final Set<String> _selectedIds = {};
 
@@ -152,6 +150,11 @@ class _MemoryHuntScreenState extends State<MemoryHuntScreen> {
       _step = MemoryHuntStep.answer;
       _answerSeconds = _currentTargetSeconds.clamp(15, 60);
       _levelStartTime = DateTime.now();
+      _attemptsInLevel = 0;
+      _hintUsedInLevel = false;
+      _hintCountInLevel = 0;
+      _hintDisplayed = false;
+      _activeHintText = null;
     });
 
     _stepTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -162,12 +165,36 @@ class _MemoryHuntScreenState extends State<MemoryHuntScreen> {
       setState(() {
         if (_answerSeconds > 0) {
           _answerSeconds--;
+
+          // Adaptive struggle detection on prolonged search or timer getting close to expiration:
+          final elapsedSeconds = _currentTargetSeconds - _answerSeconds;
+          if (!_hintDisplayed &&
+              (elapsedSeconds >= kMemoryHuntHintTriggerSeconds || _answerSeconds <= 15)) {
+            _triggerDynamicHint();
+          }
         } else {
           timer.cancel();
           _onTimerTimeout();
         }
       });
     });
+  }
+
+  void _triggerDynamicHint() {
+    if (_hintDisplayed || _gameFinished || !mounted) return;
+    if (_currentLevelData.hints.isEmpty) return;
+
+    final hintIndex = _hintCountInLevel % _currentLevelData.hints.length;
+    final hint = _currentLevelData.getLocalizedHint(context, hintIndex);
+
+    setState(() {
+      _hintUsedInLevel = true;
+      _hintCountInLevel++;
+      _hintDisplayed = true;
+      _activeHintText = hint;
+    });
+
+    playVoiceGuidance('Gentle Clue: $hint');
   }
 
   void _onTimerTimeout() {
@@ -193,9 +220,12 @@ class _MemoryHuntScreenState extends State<MemoryHuntScreen> {
       allowedTimerDuration: _currentTargetSeconds.toDouble(),
       remainingTime: 0.0,
       timeUtilization: 1.0,
-      attempts: 1,
+      attempts: _attemptsInLevel + 1,
       isSuccess: false,
       isTimeout: true,
+      hintUsed: _hintUsedInLevel,
+      hintCount: _hintCountInLevel,
+      completedWithHint: false,
     );
 
     if (_adaptiveSession != null) {
@@ -269,6 +299,7 @@ class _MemoryHuntScreenState extends State<MemoryHuntScreen> {
     final correctCount = _selectedIds.where((id) => targetIds.contains(id)).length;
     final wrongCount = _selectedIds.where((id) => !targetIds.contains(id)).length;
     final totalTasks = targetIds.length;
+    final currentAttempts = _attemptsInLevel + 1;
 
     final metrics = LevelPerformanceMetrics(
       level: _currentLevel,
@@ -282,9 +313,12 @@ class _MemoryHuntScreenState extends State<MemoryHuntScreen> {
       allowedTimerDuration: _currentTargetSeconds.toDouble(),
       remainingTime: max(0.0, _currentTargetSeconds.toDouble() - completionTimeSeconds),
       timeUtilization: (completionTimeSeconds / max(1, _currentTargetSeconds)).clamp(0.0, 1.0),
-      attempts: 1,
+      attempts: currentAttempts,
       isSuccess: isCorrect,
       isTimeout: false,
+      hintUsed: _hintUsedInLevel,
+      hintCount: _hintCountInLevel,
+      completedWithHint: isCorrect && _hintUsedInLevel,
     );
 
     if (_adaptiveSession != null) {
@@ -323,6 +357,11 @@ class _MemoryHuntScreenState extends State<MemoryHuntScreen> {
         );
       }
     } else {
+      _attemptsInLevel++;
+      if (!_hintDisplayed && _attemptsInLevel >= kMemoryHuntHintTriggerAttempts) {
+        _triggerDynamicHint();
+      }
+
       final targetLabels = _currentLevelData.getLocalizedTargetLabels(context);
 
       playVoiceGuidance('Wrong Answer! Let\'s try again.');
@@ -489,6 +528,22 @@ class _MemoryHuntScreenState extends State<MemoryHuntScreen> {
     }
   }
 
+  // Testing hooks
+  @visibleForTesting
+  bool get hintUsedInLevel => _hintUsedInLevel;
+
+  @visibleForTesting
+  int get hintCountInLevel => _hintCountInLevel;
+
+  @visibleForTesting
+  String? get activeHintText => _activeHintText;
+
+  @visibleForTesting
+  int get attemptsInLevel => _attemptsInLevel;
+
+  @visibleForTesting
+  void simulateTriggerHint() => _triggerDynamicHint();
+
   @override
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
@@ -539,6 +594,10 @@ class _MemoryHuntScreenState extends State<MemoryHuntScreen> {
           selectedIds: _selectedIds,
           onToggle: _toggleSelection,
           onSubmit: _onSubmitPressed,
+          hintText: _activeHintText,
+          onHintSpeaker: _activeHintText != null
+              ? () => playVoiceGuidance('Gentle Clue: $_activeHintText')
+              : null,
           onSpeaker: () => playVoiceGuidance(
               context.loc.selectObjectsGuidance(_currentLevelData.targetCount, 0)),
         );
